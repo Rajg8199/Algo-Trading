@@ -1,0 +1,50 @@
+groups:
+  - name: platform
+    rules:
+      - alert: ServiceDown
+        expr: up{job="services"} == 0
+        for: 1m
+        labels: { severity: P1 }
+        annotations:
+          summary: "{{ $labels.instance }} is down"
+
+      - alert: FeedDisconnected
+        expr: ws_connected == 0
+        for: 2m
+        labels: { severity: P1 }
+        annotations:
+          summary: "Market feed websocket disconnected"
+
+      - alert: UpstoxTokenInvalid
+        expr: upstox_token_valid == 0
+        for: 5m
+        labels: { severity: P1 }
+        annotations:
+          summary: "Upstox token invalid"
+
+      - alert: ChainSnapshotStale
+        expr: chain_snapshot_age_seconds > 180
+        for: 3m
+        labels: { severity: P2 }
+        annotations:
+          summary: "Chain snapshots stale for {{ $labels.underlying }}"
+
+      - alert: ValidationFailuresHigh
+        expr: rate(data_validation_failures_total[5m]) > 5
+        for: 5m
+        labels: { severity: P2 }
+        annotations:
+          summary: "High data validation failure rate ({{ $labels.check }})"
+
+      - alert: DiskFillingUp
+        expr: (node_filesystem_avail_bytes{mountpoint="/host"} / node_filesystem_size_bytes{mountpoint="/host"}) < 0.15
+        for: 10m
+        labels: { severity: P1 }
+        annotations:
+          summary: "Disk under 15% free"
+
+      - alert: SchedulerJobErrors
+        expr: increase(scheduler_job_runs_total{outcome="error"}[1h]) > 0
+        labels: { severity: P2 }
+        annotations:
+          summary: "Scheduler job {{ $labels.job }} failing"

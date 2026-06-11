@@ -1,0 +1,10 @@
+# Dev-only override: publish DB ports to the host so alembic/pytest/notebooks
+# can connect directly. NEVER use on the VPS.
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d timescaledb redis
+services:
+  timescaledb:
+    ports:
+      - "127.0.0.1:5432:5432"
+  redis:
+    ports:
+      - "127.0.0.1:6380:6379"  # 6380 host-side to avoid clashing with a local redis

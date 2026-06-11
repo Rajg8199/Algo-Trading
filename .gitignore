@@ -1,0 +1,16 @@
+__pycache__/
+*.py[cod]
+.venv/
+.env
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.coverage
+htmlcov/
+dist/
+datalake/**
+!datalake/**/.gitkeep
+notebooks/**/*.ipynb_checkpoints
+backups/
+*.log
+.DS_Store

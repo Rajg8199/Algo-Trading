@@ -1,0 +1,25 @@
+[project]
+name = "tp-api"
+version = "0.1.0"
+description = "Internal read API + Upstox auth callback"
+requires-python = ">=3.12"
+dependencies = [
+    "tp-core",
+    "tp-upstox",
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.32",
+]
+
+[tool.uv.sources]
+tp-core = { workspace = true }
+tp-upstox = { workspace = true }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/tp_api"]
+
+[project.scripts]
+tp-api = "tp_api.main:cli"

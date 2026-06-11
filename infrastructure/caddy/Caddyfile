@@ -1,0 +1,21 @@
+# Replace your-domain.example with the real domain before deploy.
+# Only two things are reachable from the internet:
+#   1. the Upstox OAuth callback (needed for daily re-auth)
+#   2. Grafana, behind basic auth
+your-domain.example {
+	handle /api/v1/auth/upstox/callback {
+		reverse_proxy api:8000
+	}
+
+	handle_path /grafana/* {
+		basic_auth {
+			# generate with: caddy hash-password
+			admin $2a$14$REPLACE_WITH_HASHED_PASSWORD
+		}
+		reverse_proxy grafana:3000
+	}
+
+	handle {
+		respond "" 404
+	}
+}

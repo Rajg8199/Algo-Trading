@@ -1,0 +1,129 @@
+name: trading-platform
+
+x-service-defaults: &service-defaults
+  restart: unless-stopped
+  env_file: .env
+  networks: [internal]
+  depends_on:
+    timescaledb: { condition: service_healthy }
+    redis: { condition: service_healthy }
+    migrate: { condition: service_completed_successfully }
+  logging:
+    driver: json-file
+    options: { max-size: "50m", max-file: "5" }
+
+services:
+  timescaledb:
+    image: timescale/timescaledb:2.17.2-pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks: [internal]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    shm_size: 512mb
+
+  redis:
+    image: redis:7.4-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    networks: [internal]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  migrate:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile
+      args: { SERVICE: api }
+    env_file: .env
+    networks: [internal]
+    depends_on:
+      timescaledb: { condition: service_healthy }
+    restart: "no"
+    command: ["alembic", "upgrade", "head"]
+
+  recorder:
+    <<: *service-defaults
+    build:
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile
+      args: { SERVICE: recorder }
+    environment:
+      HEALTH_PORT: ${RECORDER_HEALTH_PORT}
+    expose: ["8001"]
+
+  scheduler:
+    <<: *service-defaults
+    build:
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile
+      args: { SERVICE: scheduler }
+    environment:
+      HEALTH_PORT: ${SCHEDULER_HEALTH_PORT}
+    expose: ["8002"]
+
+  api:
+    <<: *service-defaults
+    build:
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile
+      args: { SERVICE: api }
+    environment:
+      HEALTH_PORT: ${API_PORT}
+    expose: ["8000"]
+
+  telegram:
+    <<: *service-defaults
+    build:
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile
+      args: { SERVICE: telegram }
+    environment:
+      HEALTH_PORT: ${TELEGRAM_HEALTH_PORT}
+    expose: ["8003"]
+
+  caddy:
+    image: caddy:2.9-alpine
+    restart: unless-stopped
+    ports: ["80:80", "443:443"]
+    volumes:
+      - ./infrastructure/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+    networks: [internal]
+    depends_on: [api]
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.8-alpine
+    profiles: [analytics]
+    restart: unless-stopped
+    environment:
+      CLICKHOUSE_DB: ${CLICKHOUSE_DB}
+    volumes:
+      - clickhouse-data:/var/lib/clickhouse
+      - ./infrastructure/clickhouse/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks: [internal]
+    ulimits:
+      nofile: { soft: 262144, hard: 262144 }
+
+volumes:
+  pgdata:
+  redis-data:
+  caddy-data:
+  clickhouse-data:
+
+networks:
+  internal:
+    driver: bridge
