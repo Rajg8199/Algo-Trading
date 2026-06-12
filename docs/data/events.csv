@@ -1,0 +1,15 @@
+# Curated event calendar. Reviewed quarterly by hand — do not scrape.
+# event_ts is IST (the seeder converts to UTC). Announcement moments:
+#   RBI_MPC ~10:00 IST · BUDGET 11:00 IST · FOMC 23:30 IST (statement) ·
+#   US_CPI 18:00 IST (8:30 ET winter) · IN_CPI 17:30 IST · HOLIDAY 00:00
+# Rows below are STRUCTURE EXAMPLES with dates to VERIFY against the official
+# RBI / FOMC / MOSPI calendars before seeding. Replace, then run:
+#   uv run python scripts/seed_events.py docs/data/events.csv
+event_ts,event_type,description
+2026-06-05 10:00,RBI_MPC,VERIFY: RBI MPC policy announcement
+2026-08-06 10:00,RBI_MPC,VERIFY: RBI MPC policy announcement
+2026-06-17 23:30,FOMC,VERIFY: FOMC statement (IST)
+2026-07-29 23:30,FOMC,VERIFY: FOMC statement (IST)
+2026-06-12 18:00,US_CPI,VERIFY: US CPI release (IST)
+2026-06-12 17:30,IN_CPI,VERIFY: India CPI release
+2027-02-01 11:00,BUDGET,Union Budget presentation

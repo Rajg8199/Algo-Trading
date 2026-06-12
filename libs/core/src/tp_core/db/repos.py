@@ -16,6 +16,7 @@ from tp_core.db.orm import (
     DataGapRow,
     DQCheckRow,
     EventRow,
+    FeatureValueRow,
     InstrumentRow,
     OptionChainRow,
     TickRow,
@@ -194,6 +195,44 @@ class VolMetricsRepo:
         stmt = stmt.on_conflict_do_update(index_elements=["trade_date", "underlying"], set_=keys)
         async with self._db.session() as s:
             await s.execute(stmt)
+
+
+class FeatureRepo:
+    """Feature store access. Every feature value is keyed by (name, version,
+    entity, ts); recomputing with the same version overwrites idempotently."""
+
+    def __init__(self, db: Database) -> None:
+        self._db = db
+
+    async def upsert_many(self, rows: list[dict[str, Any]]) -> int:
+        if not rows:
+            return 0
+        stmt = pg_insert(FeatureValueRow).values(rows)
+        stmt = stmt.on_conflict_do_update(
+            index_elements=["feature_name", "feature_version", "entity", "ts"],
+            set_={"value": stmt.excluded.value, "metadata": stmt.excluded["metadata"]},
+        )
+        async with self._db.session() as s:
+            await s.execute(stmt)
+        return len(rows)
+
+    async def series(
+        self, feature_name: str, feature_version: str, entity: str, limit: int = 400
+    ) -> list[tuple[datetime, float | None]]:
+        """Most recent `limit` values, returned oldest-first."""
+        async with self._db.session() as s:
+            result = await s.execute(
+                select(FeatureValueRow.ts, FeatureValueRow.value)
+                .where(
+                    FeatureValueRow.feature_name == feature_name,
+                    FeatureValueRow.feature_version == feature_version,
+                    FeatureValueRow.entity == entity,
+                )
+                .order_by(FeatureValueRow.ts.desc())
+                .limit(limit)
+            )
+            rows = result.tuples().all()
+        return list(reversed(rows))
 
 
 class EventsRepo:

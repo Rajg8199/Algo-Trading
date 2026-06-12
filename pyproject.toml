@@ -6,6 +6,7 @@ requires-python = ">=3.12"
 dependencies = [
     "tp-core",
     "tp-upstox",
+    "tp-research",
     "tp-recorder",
     "tp-scheduler",
     "tp-api",
@@ -21,6 +22,7 @@ members = ["libs/*", "services/*"]
 [tool.uv.sources]
 tp-core = { workspace = true }
 tp-upstox = { workspace = true }
+tp-research = { workspace = true }
 tp-recorder = { workspace = true }
 tp-scheduler = { workspace = true }
 tp-api = { workspace = true }
@@ -60,7 +62,7 @@ ignore = [
 python_version = "3.12"
 strict = true
 plugins = ["pydantic.mypy"]
-mypy_path = "libs/core/src:libs/upstox/src:services/recorder/src:services/scheduler/src:services/api/src:services/telegram/src"
+mypy_path = "libs/core/src:libs/upstox/src:libs/research/src:services/recorder/src:services/scheduler/src:services/api/src:services/telegram/src"
 exclude = ["notebooks/", "datalake/"]
 
 [[tool.mypy.overrides]]

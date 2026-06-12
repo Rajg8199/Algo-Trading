@@ -6,6 +6,7 @@ requires-python = ">=3.12"
 dependencies = [
     "tp-core",
     "tp-upstox",
+    "tp-research",
     "apscheduler>=3.10,<4",
     "httpx>=0.27",
 ]
@@ -13,6 +14,7 @@ dependencies = [
 [tool.uv.sources]
 tp-core = { workspace = true }
 tp-upstox = { workspace = true }
+tp-research = { workspace = true }
 
 [build-system]
 requires = ["hatchling"]

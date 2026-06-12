@@ -18,7 +18,14 @@ from tp_core.telemetry import HealthState, configure_logging, get_logger, serve_
 from tp_core.telemetry.metrics import JOB_DURATION, JOB_RUNS
 from tp_core.timeutils import IST
 from tp_scheduler.context import JobContext, build_context
-from tp_scheduler.jobs import dq_sweep, heartbeat, instruments_refresh, nse_eod, token_check
+from tp_scheduler.jobs import (
+    data_validation,
+    heartbeat,
+    instruments_refresh,
+    nse_eod,
+    token_check,
+)
+from tp_scheduler.jobs import feature_engine as feature_engine_job
 from tp_scheduler.jobs import vol_metrics as vol_metrics_job
 
 log = get_logger(__name__)
@@ -55,8 +62,9 @@ def register_jobs(scheduler: AsyncIOScheduler, ctx: JobContext) -> None:
         ("token_check_late", token_check.run, weekday_cron(9, 0)),
         ("instruments_refresh", instruments_refresh.run, weekday_cron(8, 35)),
         ("vol_metrics", vol_metrics_job.run, weekday_cron(16, 0)),
+        ("feature_engine", feature_engine_job.run, weekday_cron(16, 15)),
         ("nse_eod", nse_eod.run, weekday_cron("18-22", 30)),
-        ("dq_sweep", dq_sweep.run, weekday_cron(21, 0)),
+        ("data_validation", data_validation.run, weekday_cron(21, 0)),
         ("heartbeat_open", heartbeat.run, weekday_cron(9, 20)),
         ("heartbeat_midday", heartbeat.run, weekday_cron(12, 30)),
         ("heartbeat_close", heartbeat.run, weekday_cron(15, 35)),
