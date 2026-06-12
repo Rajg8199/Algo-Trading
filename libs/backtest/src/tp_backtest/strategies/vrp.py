@@ -36,6 +36,9 @@ class VRPParams:
     wing_delta: float = 0.10
     stop_mult: float = 2.0  # exit at loss >= stop_mult x credit
     lots: int = 1
+    # Event filter: days on which entries are forbidden (scheduled events
+    # within the holding window). Empty set = filter off.
+    excluded_entry_days: frozenset[date] = frozenset()
 
 
 @dataclass
@@ -220,6 +223,8 @@ class ConditionalVRP(Strategy):
             return []
         self._last_action_day = today
 
+        if today in p.excluded_entry_days:
+            return []
         if not self._filters_pass(state):
             return []
         expiry = self._pick_expiry(state, today)
