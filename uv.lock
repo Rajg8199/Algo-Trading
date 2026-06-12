@@ -9,6 +9,7 @@ resolution-markers = [
 [manifest]
 members = [
     "tp-api",
+    "tp-backtest",
     "tp-core",
     "tp-recorder",
     "tp-research",
@@ -1613,6 +1614,23 @@ requires-dist = [
 ]
 
 [[package]]
+name = "tp-backtest"
+version = "0.1.0"
+source = { editable = "libs/backtest" }
+dependencies = [
+    { name = "numpy" },
+    { name = "tp-core" },
+    { name = "tp-research" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "numpy", specifier = ">=2.0" },
+    { name = "tp-core", editable = "libs/core" },
+    { name = "tp-research", editable = "libs/research" },
+]
+
+[[package]]
 name = "tp-core"
 version = "0.1.0"
 source = { editable = "libs/core" }
@@ -1732,6 +1750,7 @@ version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "tp-api" },
+    { name = "tp-backtest" },
     { name = "tp-core" },
     { name = "tp-recorder" },
     { name = "tp-research" },
@@ -1754,6 +1773,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "tp-api", editable = "services/api" },
+    { name = "tp-backtest", editable = "libs/backtest" },
     { name = "tp-core", editable = "libs/core" },
     { name = "tp-recorder", editable = "services/recorder" },
     { name = "tp-research", editable = "libs/research" },

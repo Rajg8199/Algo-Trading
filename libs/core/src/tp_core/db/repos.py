@@ -197,6 +197,56 @@ class VolMetricsRepo:
             await s.execute(stmt)
 
 
+class ExperimentRepo:
+    """Research registry writes. trial_number is assigned here, atomically per
+    hypothesis — the deflated-Sharpe denominator cannot be fudged by callers."""
+
+    def __init__(self, db: Database) -> None:
+        self._db = db
+
+    async def record(
+        self,
+        run_id: Any,
+        kind: str,
+        hypothesis: str,
+        strategy: str | None,
+        params: dict[str, Any],
+        data_range: tuple[date, date] | None,
+        cost_multiplier: float | None,
+        git_sha: str,
+        metrics: dict[str, Any],
+        artifacts_path: str | None = None,
+        feature_set_version: str | None = None,
+    ) -> int:
+        from tp_core.db.orm import ExperimentRow
+
+        async with self._db.session() as s:
+            result = await s.execute(
+                select(func.count())
+                .select_from(ExperimentRow)
+                .where(ExperimentRow.hypothesis == hypothesis)
+            )
+            trial_number = int(result.scalar() or 0) + 1
+            s.add(
+                ExperimentRow(
+                    run_id=run_id,
+                    kind=kind,
+                    hypothesis=hypothesis,
+                    strategy=strategy,
+                    params=params,
+                    data_range_start=data_range[0] if data_range else None,
+                    data_range_end=data_range[1] if data_range else None,
+                    cost_multiplier=cost_multiplier,
+                    git_sha=git_sha,
+                    feature_set_version=feature_set_version,
+                    metrics=metrics,
+                    artifacts_path=artifacts_path,
+                    trial_number=trial_number,
+                )
+            )
+        return trial_number
+
+
 class FeatureRepo:
     """Feature store access. Every feature value is keyed by (name, version,
     entity, ts); recomputing with the same version overwrites idempotently."""

@@ -1,0 +1,21 @@
+[project]
+name = "tp-backtest"
+version = "0.1.0"
+description = "Event-driven backtest engine, cost/fill models, walk-forward, Monte Carlo, validation gate"
+requires-python = ">=3.12"
+dependencies = [
+    "tp-core",
+    "tp-research",
+    "numpy>=2.0",
+]
+
+[tool.uv.sources]
+tp-core = { workspace = true }
+tp-research = { workspace = true }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/tp_backtest"]
