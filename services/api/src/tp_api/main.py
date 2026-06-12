@@ -5,9 +5,10 @@ from contextlib import asynccontextmanager
 
 import uvicorn
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from tp_api.deps import build_state
-from tp_api.routers import auth, system, trading
+from tp_api.routers import auth, console, system, trading
 from tp_core.config import get_settings
 from tp_core.telemetry import configure_logging
 
@@ -26,9 +27,16 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 def create_app() -> FastAPI:
     configure_logging("api", get_settings().log_level)
     app = FastAPI(title="trading-platform", docs_url=None, redoc_url=None, lifespan=lifespan)
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=get_settings().dashboard_origins.split(","),
+        allow_methods=["GET"],
+        allow_headers=["*"],
+    )
     app.include_router(system.router)
     app.include_router(auth.router)
     app.include_router(trading.router)
+    app.include_router(console.router)
     return app
 
 

@@ -84,6 +84,8 @@ services:
     environment:
       HEALTH_PORT: ${API_PORT}
     expose: ["8000"]
+    volumes:
+      - ./datalake:/app/datalake:ro  # backtest artifacts for console endpoints
 
   telegram:
     <<: *service-defaults

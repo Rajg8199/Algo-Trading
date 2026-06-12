@@ -61,6 +61,9 @@ class Settings(BaseSettings):
     # Data lake
     datalake_root: str = "./datalake"
 
+    # Dashboard (console) CORS origins, comma-separated
+    dashboard_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
+
     # ClickHouse (optional analytics profile)
     clickhouse_host: str = "clickhouse"
     clickhouse_port: int = 9000

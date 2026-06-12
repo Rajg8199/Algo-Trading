@@ -1600,7 +1600,9 @@ version = "0.1.0"
 source = { editable = "services/api" }
 dependencies = [
     { name = "fastapi" },
+    { name = "httpx" },
     { name = "tp-core" },
+    { name = "tp-research" },
     { name = "tp-upstox" },
     { name = "uvicorn", extra = ["standard"] },
 ]
@@ -1608,7 +1610,9 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "fastapi", specifier = ">=0.115" },
+    { name = "httpx", specifier = ">=0.27" },
     { name = "tp-core", editable = "libs/core" },
+    { name = "tp-research", editable = "libs/research" },
     { name = "tp-upstox", editable = "libs/upstox" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.32" },
 ]
