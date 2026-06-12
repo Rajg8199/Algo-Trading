@@ -1,0 +1,123 @@
+/** Mock payloads used ONLY when the backend endpoint is unreachable or not
+ * yet implemented. Every consumer renders a visible MOCK badge when these
+ * are served — mock data must never be mistakable for recorded data. */
+
+import type {
+  BurnInDay,
+  DQCheck,
+  EquityPoint,
+  ExperimentDetail,
+  ExperimentSummary,
+  FeatureSeries,
+  OpsSummary,
+  TradeRow,
+} from "./types";
+
+const NOW = new Date();
+const iso = (minsAgo: number) => new Date(NOW.getTime() - minsAgo * 60_000).toISOString();
+const day = (n: number) => new Date(NOW.getTime() - n * 86_400_000).toISOString().slice(0, 10);
+
+export const mockOpsSummary: OpsSummary = {
+  services: { recorder: true, scheduler: true, api: true, telegram: true, db: true, redis: true },
+  lastTick: iso(1),
+  lastChainSnapshot: iso(2),
+  ticksLast5m: 4210,
+  chainRowsLast5m: 1840,
+  openDataGaps: 0,
+  upstoxToken: "valid",
+  ticksToday: { NIFTY: 182_450, SENSEX: 121_300 },
+  chainRowsToday: { NIFTY: 158_200, SENSEX: 96_400 },
+};
+
+export const mockDqChecks: DQCheck[] = [
+  { checkDate: day(0), checkName: "completeness_ticks_NIFTY", passed: true, details: { rows: 182450, minimum: 50000 } },
+  { checkDate: day(0), checkName: "completeness_option_chain_NIFTY", passed: true, details: { rows: 158200, minimum: 10000 } },
+  { checkDate: day(0), checkName: "chain_gaps_NIFTY", passed: true, details: { max_gap_seconds: 64 } },
+  { checkDate: day(0), checkName: "missing_strikes_SENSEX", passed: false, details: { missing_pct: 3.2 } },
+  { checkDate: day(0), checkName: "invalid_greeks_NIFTY", passed: true, details: { pct: 0.12 } },
+  { checkDate: day(0), checkName: "oi_consistency_NIFTY", passed: true, details: {} },
+];
+
+export const mockBurnIn: BurnInDay[] = Array.from({ length: 10 }, (_, i) => ({
+  day: i + 1,
+  date: day(9 - i),
+  status: i < 3 ? (i === 0 ? "YELLOW" : "GREEN") : "PENDING",
+  grades:
+    i < 3
+      ? [
+          { name: "ticks_NIFTY", status: "GREEN", detail: "182,450" },
+          { name: "chain_rows_NIFTY", status: "GREEN", detail: "158,200" },
+          { name: "max_chain_gap_s_NIFTY", status: i === 0 ? "YELLOW" : "GREEN", detail: i === 0 ? "164s" : "61s" },
+        ]
+      : [],
+}));
+
+export const mockExperiments: ExperimentSummary[] = [
+  {
+    runId: "9f2b1c44-mock",
+    hypothesis: "H1-VRP-EXP001",
+    strategy: "vrp_nifty",
+    kind: "BACKTEST",
+    trialNumber: 1,
+    decision: null,
+    dsr: null,
+    createdAt: iso(60 * 24),
+    gitSha: "41d2e93",
+  },
+];
+
+export const mockExperimentDetail: ExperimentDetail = {
+  ...mockExperiments[0],
+  decision: "INVESTIGATE",
+  dsr: 0.62,
+  params: { grid: "registered-72", protocol: "vrp-experiment-001" },
+  gates: [
+    { name: "profit_factor", passed: true, detail: "1.71 vs > 1.5" },
+    { name: "sharpe", passed: false, detail: "1.21 vs > 1.5" },
+    { name: "max_drawdown", passed: true, detail: "6.4% vs < 10%" },
+    { name: "sample_size", passed: false, detail: "84 vs >= 100" },
+    { name: "monte_carlo", passed: true, detail: "p95 dd 9.8%" },
+    { name: "walk_forward", passed: false, detail: "OOS sharpe=1.1" },
+  ],
+  metrics: {
+    expected: {
+      netPnl: 184_500, sharpe: 1.21, profitFactor: 1.71, expectancy: 2196,
+      maxDrawdownPct: 6.4, winRate: 0.64, nTrades: 84, nDays: 246, totalCosts: 61_240,
+    },
+    best: {
+      netPnl: 248_900, sharpe: 1.62, profitFactor: 2.05, expectancy: 2963,
+      maxDrawdownPct: 5.1, winRate: 0.68, nTrades: 84, nDays: 246, totalCosts: 48_100,
+    },
+    worst: {
+      netPnl: 121_700, sharpe: 0.84, profitFactor: 1.42, expectancy: 1449,
+      maxDrawdownPct: 8.2, winRate: 0.60, nTrades: 84, nDays: 246, totalCosts: 74_800,
+    },
+  },
+  monteCarlo: { maxDdP95: 98_000, maxDdP99: 131_000, maxDdP999: 162_000, riskOfRuin: 0.004, probNegativePnl: 0.06 },
+  regimeSharpes: { low: 0.9, mid: 1.6, high: 0.4 },
+};
+
+export const mockEquity: EquityPoint[] = Array.from({ length: 180 }, (_, i) => {
+  const equity = Math.round(1000 * i + 14_000 * Math.sin(i / 9) + 220 * (i % 13));
+  return { ts: day(180 - i), equity, drawdown: Math.max(0, Math.round(9000 + 7000 * Math.sin(i / 7)) - 8000) };
+});
+
+export const mockTrades: TradeRow[] = Array.from({ length: 12 }, (_, i) => ({
+  ts: iso(60 * 24 * (12 - i)),
+  instrumentId: 51_000 + i,
+  side: i % 4 === 0 ? "BUY" : "SELL",
+  qty: 75,
+  price: 84.5 + i * 3.2,
+  costs: 41.2,
+  tag: i % 3 === 0 ? "SETTLE" : "OPEN",
+  realizedPnl: i % 3 === 0 ? 2150 - (i % 5) * 900 : 0,
+}));
+
+export const mockFeatureSeries = (featureName: string, entity: string): FeatureSeries => ({
+  featureName,
+  entity,
+  points: Array.from({ length: 60 }, (_, i) => ({
+    ts: day(60 - i),
+    value: 13 + 3 * Math.sin(i / 6) + (i % 7) * 0.2,
+  })),
+});
