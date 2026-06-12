@@ -1,0 +1,27 @@
+{
+  "_comment": "GFDL vendor mapping. VERIFY against a real sample file with scripts/gfdl_import.py --probe before any full import. Patterns use named groups: symbol, day, mon, year, strike, opt.",
+  "option_pattern": "^(?P<symbol>NIFTY|SENSEX)(?P<day>\\d{2})(?P<mon>[A-Z]{3})(?P<year>\\d{2})(?P<strike>\\d+(?:\\.\\d+)?)(?P<opt>CE|PE)(?:\\.NFO|\\.BFO)?$",
+  "future_pattern": "^(?P<symbol>NIFTY|SENSEX)(?P<day>\\d{2})(?P<mon>[A-Z]{3})(?P<year>\\d{2})FUT(?:\\.NFO|\\.BFO)?$",
+  "index_tickers": {
+    "NIFTY 50": "NIFTY",
+    "NIFTY50": "NIFTY",
+    "NIFTY 50.NSE_IDX": "NIFTY",
+    "SENSEX": "SENSEX",
+    "SENSEX.BSE_IDX": "SENSEX",
+    "INDIA VIX": "INDIAVIX",
+    "INDIAVIX": "INDIAVIX"
+  },
+  "columns": {
+    "ticker": "Ticker",
+    "date": "Date",
+    "time": "Time",
+    "open": "Open",
+    "high": "High",
+    "low": "Low",
+    "close": "Close",
+    "volume": "Volume",
+    "oi": "OpenInterest"
+  },
+  "date_format": "%d/%m/%Y",
+  "underlyings": ["NIFTY", "SENSEX"]
+}

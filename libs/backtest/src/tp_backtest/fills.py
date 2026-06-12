@@ -47,8 +47,19 @@ def latency_snapshots(scenario: FillScenario) -> int:
     return SCENARIO_PARAMS[scenario][2]
 
 
-def fill_price(quote: Quote, side: OrderSide, scenario: FillScenario) -> FillResult | None:
-    """Price for one fill from the quote at the (latency-adjusted) snapshot."""
+def fill_price(
+    quote: Quote,
+    side: OrderSide,
+    scenario: FillScenario,
+    synthetic_spread_pct: float | None = None,
+) -> FillResult | None:
+    """Price for one fill from the quote at the (latency-adjusted) snapshot.
+
+    synthetic_spread_pct (registered amendment for imported vendor bars that
+    carry no quotes): when the opposing quote is missing AND this is set, a
+    synthetic touch is derived as mid +/- max(0.05, mid * pct/100 / 2).
+    Default None preserves the no-quote => no-fill contract for recorded data.
+    """
     cross, multiplier, _ = SCENARIO_PARAMS[scenario]
     mid = quote.mid
     if mid is None:
@@ -59,6 +70,9 @@ def fill_price(quote: Quote, side: OrderSide, scenario: FillScenario) -> FillRes
         return FillResult(price=price, slippage_vs_mid=Decimal(0))
 
     touch = quote.ask if side is OrderSide.BUY else quote.bid
+    if touch is None and synthetic_spread_pct is not None:
+        half = max(0.05, mid * synthetic_spread_pct / 200.0)
+        touch = mid + half if side is OrderSide.BUY else mid - half
     if touch is None:
         return None  # no opposing quote: unfillable, not "fill at ltp"
 

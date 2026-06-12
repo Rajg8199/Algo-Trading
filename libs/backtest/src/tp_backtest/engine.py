@@ -31,6 +31,10 @@ class BacktestConfig:
     limits: RiskLimits = field(default_factory=RiskLimits)
     dataset_version: str = "unversioned"
     seed: int = 42  # recorded for provenance; engine itself is deterministic
+    # Registered amendment for imported vendor bars without quotes (GFDL):
+    # synthetic spread as % of mid; None = recorded-data behavior (no-quote
+    # = no-fill). Must be calibrated from recorded spreads before use.
+    synthetic_spread_pct: float | None = None
 
 
 @dataclass
@@ -127,7 +131,7 @@ def _execute(
     if quote is None or meta is None:
         result.unfillable_orders += 1
         return
-    fill = fill_price(quote, intent.side, config.scenario)
+    fill = fill_price(quote, intent.side, config.scenario, config.synthetic_spread_pct)
     if fill is None:
         result.unfillable_orders += 1
         return
