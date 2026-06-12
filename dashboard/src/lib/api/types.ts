@@ -120,3 +120,38 @@ export interface FeatureSeries {
   entity: string;
   points: FeaturePoint[];
 }
+
+export interface PaperLeaderboardRow {
+  strategy: string;
+  netPnl: number;
+  days: number;
+  dayWinRate: number | null;
+  trades: number;
+}
+
+export interface PaperSignalRow {
+  orderId: string;
+  strategy: string;
+  side: string;
+  qty: number;
+  createdAt: string;
+  snapshot: Record<string, unknown>;
+  price: number | null;
+  slippage: number | null;
+}
+
+export interface PaperPositionRow {
+  strategy: string;
+  instrument_id: number;
+  qty: number;
+  avg_price: number | null;
+  realized_pnl: number;
+}
+
+export interface PaperPnlRow {
+  trade_date: string;
+  strategy: string;
+  gross_pnl: number | null;
+  net_pnl: number | null;
+  n_trades: number | null;
+}

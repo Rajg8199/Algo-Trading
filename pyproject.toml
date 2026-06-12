@@ -9,6 +9,7 @@ dependencies = [
     "tp-research",
     "tp-backtest",
     "tp-recorder",
+    "tp-paper",
     "tp-scheduler",
     "tp-api",
     "tp-telegram",
@@ -26,6 +27,7 @@ tp-upstox = { workspace = true }
 tp-research = { workspace = true }
 tp-backtest = { workspace = true }
 tp-recorder = { workspace = true }
+tp-paper = { workspace = true }
 tp-scheduler = { workspace = true }
 tp-api = { workspace = true }
 tp-telegram = { workspace = true }
@@ -64,7 +66,7 @@ ignore = [
 python_version = "3.12"
 strict = true
 plugins = ["pydantic.mypy"]
-mypy_path = "libs/core/src:libs/upstox/src:libs/research/src:libs/backtest/src:services/recorder/src:services/scheduler/src:services/api/src:services/telegram/src"
+mypy_path = "libs/core/src:libs/upstox/src:libs/research/src:libs/backtest/src:services/recorder/src:services/paper/src:services/scheduler/src:services/api/src:services/telegram/src"
 exclude = ["notebooks/", "datalake/"]
 
 [[tool.mypy.overrides]]

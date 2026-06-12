@@ -8,6 +8,10 @@ import { useQuery } from "@tanstack/react-query";
 import { apiGet } from "./client";
 import {
   mockBurnIn,
+  mockPaperLeaderboard,
+  mockPaperPnl,
+  mockPaperPositions,
+  mockPaperSignals,
   mockDqChecks,
   mockEquity,
   mockExperimentDetail,
@@ -18,6 +22,10 @@ import {
 } from "./mocks";
 import type {
   BurnInDay,
+  PaperLeaderboardRow,
+  PaperPnlRow,
+  PaperPositionRow,
+  PaperSignalRow,
   DQCheck,
   EquityPoint,
   ExperimentDetail,
@@ -92,6 +100,38 @@ export function useFeatureSeries(featureName: string, entity: string) {
         `/api/v1/features?name=${featureName}&entity=${entity}`,
         mockFeatureSeries(featureName, entity),
       ),
+    refetchInterval: POLL_SLOW,
+  });
+}
+
+export function usePaperLeaderboard() {
+  return useQuery({
+    queryKey: ["paper", "leaderboard"],
+    queryFn: () => apiGet<PaperLeaderboardRow[]>("/api/v1/paper/leaderboard", mockPaperLeaderboard),
+    refetchInterval: POLL_SLOW,
+  });
+}
+
+export function usePaperSignals() {
+  return useQuery({
+    queryKey: ["paper", "signals"],
+    queryFn: () => apiGet<PaperSignalRow[]>("/api/v1/paper/signals", mockPaperSignals),
+    refetchInterval: POLL_FAST,
+  });
+}
+
+export function usePaperPositions() {
+  return useQuery({
+    queryKey: ["paper", "positions"],
+    queryFn: () => apiGet<PaperPositionRow[]>("/api/v1/positions?mode=PAPER", mockPaperPositions),
+    refetchInterval: POLL_FAST,
+  });
+}
+
+export function usePaperPnl() {
+  return useQuery({
+    queryKey: ["paper", "pnl"],
+    queryFn: () => apiGet<PaperPnlRow[]>("/api/v1/pnl?mode=PAPER", mockPaperPnl),
     refetchInterval: POLL_SLOW,
   });
 }

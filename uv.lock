@@ -11,6 +11,7 @@ members = [
     "tp-api",
     "tp-backtest",
     "tp-core",
+    "tp-paper",
     "tp-recorder",
     "tp-research",
     "tp-scheduler",
@@ -1666,6 +1667,23 @@ requires-dist = [
 ]
 
 [[package]]
+name = "tp-paper"
+version = "0.1.0"
+source = { editable = "services/paper" }
+dependencies = [
+    { name = "tp-backtest" },
+    { name = "tp-core" },
+    { name = "tp-research" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "tp-backtest", editable = "libs/backtest" },
+    { name = "tp-core", editable = "libs/core" },
+    { name = "tp-research", editable = "libs/research" },
+]
+
+[[package]]
 name = "tp-recorder"
 version = "0.1.0"
 source = { editable = "services/recorder" }
@@ -1758,6 +1776,7 @@ dependencies = [
     { name = "tp-api" },
     { name = "tp-backtest" },
     { name = "tp-core" },
+    { name = "tp-paper" },
     { name = "tp-recorder" },
     { name = "tp-research" },
     { name = "tp-scheduler" },
@@ -1781,6 +1800,7 @@ requires-dist = [
     { name = "tp-api", editable = "services/api" },
     { name = "tp-backtest", editable = "libs/backtest" },
     { name = "tp-core", editable = "libs/core" },
+    { name = "tp-paper", editable = "services/paper" },
     { name = "tp-recorder", editable = "services/recorder" },
     { name = "tp-research", editable = "libs/research" },
     { name = "tp-scheduler", editable = "services/scheduler" },

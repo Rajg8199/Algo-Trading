@@ -380,3 +380,64 @@ async def backtest_equity(run_id: str) -> list[dict[str, Any]]:
     if path is None:
         raise HTTPException(status_code=404, detail="no trade artifacts for run_id")
     return equity_from_trades(_read_trades(path))
+
+
+# ── paper trading lab ────────────────────────────────────────────────────────
+@router.get("/paper/leaderboard")
+async def paper_leaderboard(state: State) -> list[dict[str, Any]]:
+    cached = _cached("paper_lb", 60)
+    if cached is not None:
+        return cached  # type: ignore[no-any-return]
+    async with state.db.session() as s:
+        rows = (
+            await s.execute(
+                text("""SELECT strategy, sum(net_pnl) AS pnl, count(*) AS days,
+                               count(*) FILTER (WHERE net_pnl > 0) AS up_days,
+                               sum(n_trades) AS trades
+                        FROM pnl_daily WHERE mode = 'PAPER'
+                        GROUP BY strategy ORDER BY pnl DESC""")
+            )
+        ).all()
+    return _store(
+        "paper_lb",
+        [
+            {
+                "strategy": r.strategy,
+                "netPnl": float(r.pnl or 0),
+                "days": int(r.days),
+                "dayWinRate": (int(r.up_days) / int(r.days)) if r.days else None,
+                "trades": int(r.trades or 0),
+            }
+            for r in rows
+        ],
+    )
+
+
+@router.get("/paper/signals")
+async def paper_signals(
+    state: State, limit: int = Query(default=50, ge=1, le=500)
+) -> list[dict[str, Any]]:
+    async with state.db.session() as s:
+        rows = (
+            await s.execute(
+                text("""SELECT o.order_id, o.strategy, o.side, o.qty, o.created_at,
+                               o.signal_snapshot, f.price, f.slippage
+                        FROM orders o LEFT JOIN fills f USING (order_id)
+                        WHERE o.mode = 'PAPER'
+                        ORDER BY o.created_at DESC LIMIT :n"""),
+                {"n": limit},
+            )
+        ).all()
+    return [
+        {
+            "orderId": str(r.order_id),
+            "strategy": r.strategy,
+            "side": r.side,
+            "qty": r.qty,
+            "createdAt": r.created_at.isoformat(),
+            "snapshot": r.signal_snapshot or {},
+            "price": float(r.price) if r.price is not None else None,
+            "slippage": float(r.slippage) if r.slippage is not None else None,
+        }
+        for r in rows
+    ]

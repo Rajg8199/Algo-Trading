@@ -197,6 +197,66 @@ class VolMetricsRepo:
             await s.execute(stmt)
 
 
+class TradingRepo:
+    """Paper-trading persistence: orders, fills, positions, daily PnL.
+    Live mode will reuse these verbatim (mode column discriminates)."""
+
+    def __init__(self, db: Database) -> None:
+        self._db = db
+
+    async def insert_order(self, row: dict[str, Any]) -> None:
+        from tp_core.db.orm import OrderRow
+
+        async with self._db.session() as s:
+            s.add(OrderRow(**row))
+
+    async def insert_fill(self, row: dict[str, Any]) -> None:
+        from tp_core.db.orm import FillRow
+
+        async with self._db.session() as s:
+            s.add(FillRow(**row))
+
+    async def upsert_position(self, row: dict[str, Any]) -> None:
+        from tp_core.db.orm import PositionRow
+
+        stmt = pg_insert(PositionRow).values(**row)
+        stmt = stmt.on_conflict_do_update(
+            index_elements=["mode", "strategy", "instrument_id"],
+            set_={
+                "qty": row["qty"],
+                "avg_price": row["avg_price"],
+                "realized_pnl": row["realized_pnl"],
+                "updated_at": row["updated_at"],
+            },
+        )
+        async with self._db.session() as s:
+            await s.execute(stmt)
+
+    async def upsert_pnl_daily(self, row: dict[str, Any]) -> None:
+        from tp_core.db.orm import PnlDailyRow
+
+        stmt = pg_insert(PnlDailyRow).values(**row)
+        keys = {k: v for k, v in row.items() if k not in ("trade_date", "mode", "strategy")}
+        stmt = stmt.on_conflict_do_update(
+            index_elements=["trade_date", "mode", "strategy"], set_=keys
+        )
+        async with self._db.session() as s:
+            await s.execute(stmt)
+
+    async def open_positions(self, mode: str, strategy: str) -> list[Any]:
+        from tp_core.db.orm import PositionRow
+
+        async with self._db.session() as s:
+            result = await s.execute(
+                select(PositionRow).where(
+                    PositionRow.mode == mode,
+                    PositionRow.strategy == strategy,
+                    PositionRow.qty != 0,
+                )
+            )
+            return list(result.scalars())
+
+
 class ExperimentRepo:
     """Research registry writes. trial_number is assigned here, atomically per
     hypothesis — the deflated-Sharpe denominator cannot be fudged by callers."""

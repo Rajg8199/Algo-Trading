@@ -87,6 +87,18 @@ services:
     volumes:
       - ./datalake:/app/datalake:ro  # backtest artifacts for console endpoints
 
+  paper:
+    <<: *service-defaults
+    build:
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile
+      args: { SERVICE: paper }
+    environment:
+      HEALTH_PORT: "8004"
+    expose: ["8004"]
+    volumes:
+      - ./datalake:/app/datalake
+
   telegram:
     <<: *service-defaults
     build:

@@ -3,6 +3,10 @@
  * are served — mock data must never be mistakable for recorded data. */
 
 import type {
+  PaperLeaderboardRow,
+  PaperPnlRow,
+  PaperPositionRow,
+  PaperSignalRow,
   BurnInDay,
   DQCheck,
   EquityPoint,
@@ -121,3 +125,24 @@ export const mockFeatureSeries = (featureName: string, entity: string): FeatureS
     value: 13 + 3 * Math.sin(i / 6) + (i % 7) * 0.2,
   })),
 });
+
+export const mockPaperLeaderboard: PaperLeaderboardRow[] = [
+  { strategy: "vrp_nifty", netPnl: 18450, days: 6, dayWinRate: 0.67, trades: 14 },
+];
+
+export const mockPaperSignals: PaperSignalRow[] = [
+  {
+    orderId: "mock-1", strategy: "vrp_nifty", side: "SELL", qty: 75,
+    createdAt: iso(60), snapshot: { leg: "SELL_CE_24700", delta: 0.25 },
+    price: 62.4, slippage: 0.45,
+  },
+];
+
+export const mockPaperPositions: PaperPositionRow[] = [
+  { strategy: "vrp_nifty", instrument_id: 51234, qty: -75, avg_price: 62.4, realized_pnl: 0 },
+];
+
+export const mockPaperPnl: PaperPnlRow[] = Array.from({ length: 6 }, (_, i) => ({
+  trade_date: day(6 - i), strategy: "vrp_nifty",
+  gross_pnl: 4000 - i * 600, net_pnl: 3400 - i * 600, n_trades: 2,
+}));

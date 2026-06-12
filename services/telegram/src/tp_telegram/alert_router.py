@@ -22,7 +22,13 @@ log = get_logger(__name__)
 
 DEDUP_WINDOW = timedelta(minutes=15)
 P2_BATCH_SECONDS = 300
-PASSTHROUGH_DEDUP_PREFIXES = ("heartbeat_", "token_refreshed")
+PASSTHROUGH_DEDUP_PREFIXES = (
+    "heartbeat_",
+    "token_refreshed",
+    "trade_",  # paper signals/exits: immediate, never batched
+    "paper_started",
+    "paper_review_",
+)
 
 
 class AlertRouter:
