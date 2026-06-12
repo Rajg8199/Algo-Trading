@@ -10,6 +10,8 @@ COPY pyproject.toml uv.lock alembic.ini ./
 COPY libs ./libs
 COPY services ./services
 COPY migrations ./migrations
+COPY scripts ./scripts
+COPY docs/data ./docs/data
 
 ARG SERVICE
 RUN uv sync --frozen --no-dev --package "tp-${SERVICE}"
