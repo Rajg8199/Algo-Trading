@@ -8,3 +8,15 @@ services:
   redis:
     ports:
       - "127.0.0.1:6380:6379"  # 6380 host-side to avoid clashing with a local redis
+  api:
+    ports:
+      - "127.0.0.1:8000:8000"  # OAuth callback (redirect URI) + status endpoint
+  recorder:
+    ports:
+      - "127.0.0.1:8001:8001"  # health/metrics from host
+  scheduler:
+    ports:
+      - "127.0.0.1:8002:8002"
+  telegram:
+    ports:
+      - "127.0.0.1:8003:8003"
