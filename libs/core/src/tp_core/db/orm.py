@@ -151,6 +151,24 @@ class FuturesBasisDailyRow(Base):
     days_to_expiry: Mapped[int | None] = mapped_column(Integer)
 
 
+class EquityDailyBarRow(Base):
+    """NSE cash-market EOD OHLCV, one row per scrip per trading day. Source of
+    truth for the equity breakout scanner. Plain table (daily granularity is
+    small); identity is (symbol, trade_date)."""
+
+    __tablename__ = "equity_bars"
+    __table_args__ = (Index("ix_equity_bars_symbol_date", "symbol", "trade_date"),)
+
+    symbol: Mapped[str] = mapped_column(String(32), primary_key=True)
+    trade_date: Mapped[date] = mapped_column(Date, primary_key=True)
+    open: Mapped[Decimal] = mapped_column(Numeric(14, 4))
+    high: Mapped[Decimal] = mapped_column(Numeric(14, 4))
+    low: Mapped[Decimal] = mapped_column(Numeric(14, 4))
+    close: Mapped[Decimal] = mapped_column(Numeric(14, 4))
+    volume: Mapped[int] = mapped_column(BigInteger)
+    source: Mapped[str] = mapped_column(String(16), server_default=text("'NSEBHAV'"))
+
+
 class OrderRow(Base):
     __tablename__ = "orders"
     __table_args__ = (Index("ix_orders_strategy_created", "strategy", "created_at"),)
