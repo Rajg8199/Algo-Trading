@@ -20,7 +20,6 @@ from sqlalchemy import (
     Integer,
     Numeric,
     String,
-    UniqueConstraint,
     text,
 )
 from sqlalchemy.dialects.postgresql import JSONB
@@ -37,10 +36,11 @@ class Base(DeclarativeBase):
 
 class InstrumentRow(Base):
     __tablename__ = "instruments"
-    __table_args__ = (
-        UniqueConstraint("exchange", "underlying", "segment", "expiry", "strike", "option_type"),
-        Index("ix_instruments_chain", "underlying", "expiry", "strike"),
-    )
+    # Identity is the vendor key (upstox_key, unique below). The natural key is
+    # intentionally NOT unique: one economic contract may carry both a
+    # historical-synthetic key (e.g. NSEBHAV|…) and a live key (NSE_FO|…). See
+    # migration 0003.
+    __table_args__ = (Index("ix_instruments_chain", "underlying", "expiry", "strike"),)
 
     instrument_id: Mapped[int] = mapped_column(Integer, primary_key=True)
     upstox_key: Mapped[str] = mapped_column(String, unique=True)

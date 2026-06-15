@@ -48,13 +48,17 @@ class InstrumentRepo:
             }
             for i in instruments
         ]
-        stmt = pg_insert(InstrumentRow).values(rows)
-        stmt = stmt.on_conflict_do_update(
-            index_elements=["upstox_key"],
-            set_={"lot_size": stmt.excluded.lot_size, "is_active": stmt.excluded.is_active},
-        )
+        # asyncpg caps bind params at 32767; this table has 11 cols/row, so the
+        # full Upstox master (tens of thousands of contracts) must be chunked.
+        chunk = 2000  # 11 * 2000 = 22000 params, comfortably under the cap
         async with self._db.session() as s:
-            await s.execute(stmt)
+            for start in range(0, len(rows), chunk):
+                stmt = pg_insert(InstrumentRow).values(rows[start : start + chunk])
+                stmt = stmt.on_conflict_do_update(
+                    index_elements=["upstox_key"],
+                    set_={"lot_size": stmt.excluded.lot_size, "is_active": stmt.excluded.is_active},
+                )
+                await s.execute(stmt)
         return len(rows)
 
     async def active_options(self, underlying: str, expiry: date) -> list[InstrumentRow]:

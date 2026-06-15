@@ -26,8 +26,13 @@ class RedisBus:
         pubsub = self._redis.pubsub()
         await pubsub.subscribe(channel.value)
         try:
-            async for message in pubsub.listen():
-                if message["type"] == "message":
+            while True:
+                # Poll with a timeout instead of pubsub.listen(): a quiet channel
+                # (CHAIN_SNAPSHOTS is silent between 60s recorder polls) otherwise
+                # lets the socket read time out and kills the iterator. get_message
+                # returns None on a quiet tick — we just keep waiting.
+                message = await pubsub.get_message(ignore_subscribe_messages=True, timeout=1.0)
+                if message is not None and message.get("type") == "message":
                     yield message["data"]
         finally:
             await pubsub.unsubscribe(channel.value)
