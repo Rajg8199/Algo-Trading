@@ -351,3 +351,10 @@ async def run_import(
         for path in pending:
             tg.create_task(worker(path))
     return results
+
+
+# Shared infrastructure reused by the bhavcopy importer — identical
+# option_chain/ticks COPY path and import_files bookkeeping. Public aliases so
+# the sibling importer doesn't import private names.
+copy_insert = _copy_insert
+record_file = _record_file

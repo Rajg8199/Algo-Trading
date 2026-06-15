@@ -115,9 +115,13 @@ def _run(
     scenario: FillScenario,
     capital: float,
     dataset_version: str,
+    synthetic_spread_pct: float | None = None,
 ) -> tuple[BacktestResult, Metrics]:
     config = BacktestConfig(
-        scenario=scenario, capital=Decimal(str(capital)), dataset_version=dataset_version
+        scenario=scenario,
+        capital=Decimal(str(capital)),
+        dataset_version=dataset_version,
+        synthetic_spread_pct=synthetic_spread_pct,
     )
     result = run_backtest(ConditionalVRP(params), states, config)
     return result, compute_metrics(result)
@@ -128,6 +132,7 @@ def in_sample_grid(
     combos: list[VRPParams],
     capital: float,
     dataset_version: str,
+    synthetic_spread_pct: float | None = None,
 ) -> list[tuple[dict[str, object], float | None]]:
     """Full-range grid under EXPECTED fills. Output: parameter surface for
     sanity inspection (cliff-edge maxima => suspect) and trial accounting."""
@@ -137,7 +142,9 @@ def in_sample_grid(
     states = _slice(states_by_day, days[0], days[-1])
     surface = []
     for params in combos:
-        _, metrics = _run(params, states, FillScenario.EXPECTED, capital, dataset_version)
+        _, metrics = _run(
+            params, states, FillScenario.EXPECTED, capital, dataset_version, synthetic_spread_pct
+        )
         surface.append((_params_key(params), metrics.sharpe))
     return surface
 
@@ -160,6 +167,7 @@ def walk_forward_run(
     scenario: FillScenario = FillScenario.EXPECTED,
     train_days: int = 180,
     validate_days: int = 60,
+    synthetic_spread_pct: float | None = None,
 ) -> WalkForwardOutcome | None:
     days = sorted(states_by_day)
     if not days:
@@ -182,7 +190,9 @@ def walk_forward_run(
         # trades; tie -> lower stop_mult (more conservative).
         best: tuple[float, float, VRPParams] | None = None
         for params in combos:
-            _, m = _run(params, train_states, scenario, capital, dataset_version)
+            _, m = _run(
+                params, train_states, scenario, capital, dataset_version, synthetic_spread_pct
+            )
             if m.n_trades < MIN_TRAIN_TRADES or m.sharpe is None:
                 continue
             key = (m.sharpe, -params.stop_mult)
@@ -194,7 +204,9 @@ def walk_forward_run(
         selections.append(selected)
 
         validate_states = _slice(states_by_day, window.validate_start, window.validate_end)
-        result, _ = _run(selected, validate_states, scenario, capital, dataset_version)
+        result, _ = _run(
+            selected, validate_states, scenario, capital, dataset_version, synthetic_spread_pct
+        )
         window_pnl = float(result.final_pnl)
         if window_pnl < 0:
             negative_windows += 1
@@ -224,6 +236,7 @@ def cost_stress(
     outcome: WalkForwardOutcome,
     capital: float,
     dataset_version: str,
+    synthetic_spread_pct: float | None = None,
 ) -> dict[FillScenario, Metrics]:
     """Re-run each window's SELECTED combo on its validation segment under
     BEST and WORST; EXPECTED comes from the walk-forward itself."""
@@ -243,7 +256,9 @@ def cost_stress(
         unfillable = 0
         for window, selected in zip(outcome.windows, outcome.selections, strict=False):
             states = _slice(states_by_day, window.validate_start, window.validate_end)
-            result, _ = _run(selected, states, scenario, capital, dataset_version)
+            result, _ = _run(
+                selected, states, scenario, capital, dataset_version, synthetic_spread_pct
+            )
             daily.extend(float(p) for p in result.daily_pnl.values())
             trades.extend(trade_pnls(result))
             costs += float(result.total_costs)
@@ -346,12 +361,19 @@ def run_experiment_001(
     capital: float,
     dataset_version: str,
     prior_trials: int = 0,
+    base_params: VRPParams | None = None,
+    synthetic_spread_pct: float | None = None,
 ) -> ExperimentReport:
-    combos = grid_combos(event_days)
+    """`base_params` seeds the registered grid (e.g. the EXP-001-EOD widened
+    decision window); `synthetic_spread_pct` enables fills on quote-less data
+    (bhavcopy). Both default to None = the intraday Experiment 001 exactly."""
+    combos = grid_combos(event_days, base=base_params)
     n_trials = prior_trials + len(combos)
 
-    surface = in_sample_grid(states_by_day, combos, capital, dataset_version)
-    wf = walk_forward_run(states_by_day, combos, capital, dataset_version)
+    surface = in_sample_grid(states_by_day, combos, capital, dataset_version, synthetic_spread_pct)
+    wf = walk_forward_run(
+        states_by_day, combos, capital, dataset_version, synthetic_spread_pct=synthetic_spread_pct
+    )
     if wf is None:
         return ExperimentReport(
             decision=Decision.INVESTIGATE,
@@ -365,7 +387,7 @@ def run_experiment_001(
             in_sample_surface=surface,
         )
 
-    oos = cost_stress(states_by_day, wf, capital, dataset_version)
+    oos = cost_stress(states_by_day, wf, capital, dataset_version, synthetic_spread_pct)
     mc = monte_carlo(wf.oos_trades, method="block", seed=42, ruin_level=150_000.0)
     regimes = regime_split(wf.oos_daily_by_date, vix_percentile_by_day, capital)
 

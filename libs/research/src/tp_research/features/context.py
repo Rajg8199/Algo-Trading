@@ -15,7 +15,7 @@ from sqlalchemy import text
 from tp_core.db import Database
 from tp_core.db.repos import FeatureRepo, InstrumentRepo
 from tp_core.timeutils import IST
-from tp_research.chain import ChainClose, load_chain_at_close
+from tp_research.chain import CLOSE_SNAPSHOT_IST, ChainClose, load_chain_at_close
 from tp_research.estimators import FloatArray
 
 _DAILY_OHLC_SQL = text("""
@@ -83,23 +83,29 @@ async def _load_daily_bars(
     )
 
 
-async def build_context(db: Database, underlying: str, trade_date: date) -> FeatureContext:
+async def build_context(
+    db: Database, underlying: str, trade_date: date, close_cut: time = CLOSE_SNAPSHOT_IST
+) -> FeatureContext:
     instruments = InstrumentRepo(db)
     features = FeatureRepo(db)
 
     ctx = FeatureContext(
         underlying=underlying,
         trade_date=trade_date,
-        ts=datetime.combine(trade_date, time(15, 25), tzinfo=IST),
+        ts=datetime.combine(trade_date, close_cut, tzinfo=IST),
     )
     ctx.bars = await _load_daily_bars(db, underlying, trade_date, lookback_days=600)
     ctx.vix = await _load_daily_bars(db, "INDIAVIX", trade_date, lookback_days=600)
 
     expiries = await instruments.expiries(underlying, after=trade_date)
     if expiries:
-        ctx.chain_front = await load_chain_at_close(db, underlying, expiries[0], trade_date)
+        ctx.chain_front = await load_chain_at_close(
+            db, underlying, expiries[0], trade_date, cut=close_cut
+        )
     if len(expiries) > 1:
-        ctx.chain_next = await load_chain_at_close(db, underlying, expiries[1], trade_date)
+        ctx.chain_next = await load_chain_at_close(
+            db, underlying, expiries[1], trade_date, cut=close_cut
+        )
 
     iv_hist = await features.series("atm_iv_front", "1", underlying, limit=300)
     ctx.atm_iv_history = np.asarray([v for _, v in iv_hist if v is not None], dtype=np.float64)

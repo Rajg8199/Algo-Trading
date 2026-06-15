@@ -56,14 +56,15 @@ class ContractKey:
     expiry: date | None = None
     strike: float | None = None
     option_type: str | None = None  # CE | PE
+    source: str = "GFDL"  # synthetic-key namespace; bhavcopy uses NSEBHAV/BSEBHAV
 
     @property
     def synthetic_key(self) -> str:
         if self.kind == "INDEX":
-            return f"GFDL|{self.underlying}|INDEX"
+            return f"{self.source}|{self.underlying}|INDEX"
         if self.kind == "FUT":
-            return f"GFDL|{self.underlying}|{self.expiry}|FUT"
-        return f"GFDL|{self.underlying}|{self.expiry}|{self.strike:g}|{self.option_type}"
+            return f"{self.source}|{self.underlying}|{self.expiry}|FUT"
+        return f"{self.source}|{self.underlying}|{self.expiry}|{self.strike:g}|{self.option_type}"
 
 
 @dataclass(frozen=True)

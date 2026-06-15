@@ -54,10 +54,13 @@ class ChainRowLite:
 
 
 async def load_chain_at_close(
-    db: Database, underlying: str, expiry: date, trade_date: date
+    db: Database, underlying: str, expiry: date, trade_date: date, cut: time = CLOSE_SNAPSHOT_IST
 ) -> ChainClose | None:
+    """`cut` = latest snapshot at-or-before this IST time is taken as the close.
+    Default 15:25 (intraday recorded data, pre-auction). EOD bhavcopy has a
+    single 15:30 settlement snapshot, so its backfill passes a later cut."""
     day_open = datetime.combine(trade_date, time(9, 15), tzinfo=IST)
-    day_cut = datetime.combine(trade_date, CLOSE_SNAPSHOT_IST, tzinfo=IST)
+    day_cut = datetime.combine(trade_date, cut, tzinfo=IST)
     async with db.session() as s:
         result = await s.execute(
             _CHAIN_AT_CLOSE_SQL,

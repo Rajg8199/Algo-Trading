@@ -1,0 +1,27 @@
+{
+  "_comment": "NSE UDiFF F&O bhavcopy mapping (the standard layout since 2024-07). ALWAYS probe a real file first: uv run python scripts/bhav_import.py --probe <file>. Index options = FinInstrmTp 'IDO', index futures = 'IDF'. SENSEX trades on BSE, NOT in this NSE file — make a separate mapping (source_tag BSEBHAV) for BSE bhavcopy and probe it before trusting columns.",
+  "source_tag": "NSEBHAV",
+  "columns": {
+    "trade_date": "TradDt",
+    "instrument_type": "FinInstrmTp",
+    "symbol": "TckrSymb",
+    "expiry": "XpryDt",
+    "strike": "StrkPric",
+    "option_type": "OptnTp",
+    "open": "OpnPric",
+    "high": "HghPric",
+    "low": "LwPric",
+    "close": "ClsPric",
+    "settlement": "SttlmPric",
+    "underlying_price": "UndrlygPric",
+    "volume": "TtlTradgVol",
+    "oi": "OpnIntrst",
+    "change_in_oi": "ChngInOpnIntrst",
+    "lot_size": "NewBrdLotQty"
+  },
+  "index_option_types": ["IDO"],
+  "index_future_types": ["IDF"],
+  "option_type_values": { "call": "CE", "put": "PE" },
+  "date_format": "%Y-%m-%d",
+  "underlyings": ["NIFTY", "SENSEX"]
+}

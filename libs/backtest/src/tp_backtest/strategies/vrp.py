@@ -39,6 +39,11 @@ class VRPParams:
     # Event filter: days on which entries are forbidden (scheduled events
     # within the holding window). Empty set = filter off.
     excluded_entry_days: frozenset[date] = frozenset()
+    # Decision window (IST). Default = intraday Experiment 001's 15:18-15:24
+    # cut. EXP-001-EOD widens this to admit the single 15:30 settlement
+    # snapshot of bhavcopy data (one snapshot/day; see vrp-experiment-001-eod).
+    decision_start: time = DECISION_START
+    decision_end: time = DECISION_END
 
 
 @dataclass
@@ -219,7 +224,7 @@ class ConditionalVRP(Strategy):
         # Entry: once per day, in the decision window only.
         if self._last_action_day == today:
             return []
-        if not (DECISION_START <= local.time() <= DECISION_END):
+        if not (p.decision_start <= local.time() <= p.decision_end):
             return []
         self._last_action_day = today
 

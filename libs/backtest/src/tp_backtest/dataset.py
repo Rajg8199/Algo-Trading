@@ -21,29 +21,36 @@ from tp_core.db import Database
 from tp_core.strategy import InstrumentMeta, MarketState, Quote
 from tp_core.timeutils import IST
 
-_FINGERPRINT_SQL = text("""
+# Optional source filter: when :source is non-null, restrict to instruments
+# whose synthetic-key namespace matches (e.g. 'NSEBHAV'), so a screen replays
+# only one data origin and never mixes recorded/GFDL/bhavcopy rows. :source IS
+# NULL (the default) reproduces the original unfiltered queries exactly.
+_SRC = "AND (cast(:source as text) IS NULL OR split_part(i.upstox_key, '|', 1) = :source)"
+_SRC_BARE = "AND (cast(:source as text) IS NULL OR split_part(upstox_key, '|', 1) = :source)"
+
+_FINGERPRINT_SQL = text(f"""
     SELECT count(*), min(oc.ts), max(oc.ts)
     FROM option_chain oc JOIN instruments i USING (instrument_id)
-    WHERE i.underlying = ANY(:unders) AND oc.ts BETWEEN :start AND :end
+    WHERE i.underlying = ANY(:unders) AND oc.ts BETWEEN :start AND :end {_SRC}
 """)
 
-_META_SQL = text("""
+_META_SQL = text(f"""
     SELECT instrument_id, underlying, segment, expiry, strike, option_type, lot_size
-    FROM instruments WHERE underlying = ANY(:unders)
+    FROM instruments i WHERE underlying = ANY(:unders) {_SRC_BARE}
 """)
 
-_SNAPSHOT_TIMES_SQL = text("""
+_SNAPSHOT_TIMES_SQL = text(f"""
     SELECT DISTINCT oc.ts
     FROM option_chain oc JOIN instruments i USING (instrument_id)
-    WHERE i.underlying = ANY(:unders) AND oc.ts BETWEEN :start AND :end
+    WHERE i.underlying = ANY(:unders) AND oc.ts BETWEEN :start AND :end {_SRC}
     ORDER BY oc.ts
 """)
 
-_SNAPSHOT_SQL = text("""
+_SNAPSHOT_SQL = text(f"""
     SELECT oc.instrument_id, oc.ltp, oc.bid, oc.ask, oc.iv, oc.delta, oc.oi,
            oc.spot, i.underlying
     FROM option_chain oc JOIN instruments i USING (instrument_id)
-    WHERE oc.ts = :ts AND i.underlying = ANY(:unders)
+    WHERE oc.ts = :ts AND i.underlying = ANY(:unders) {_SRC}
 """)
 
 _FEATURES_BEFORE_SQL = text("""
@@ -65,11 +72,15 @@ def _float(value: object) -> float | None:
     return float(value) if value is not None else None  # type: ignore[arg-type]
 
 
-async def dataset_fingerprint(db: Database, underlyings: list[str], start: date, end: date) -> str:
+async def dataset_fingerprint(
+    db: Database, underlyings: list[str], start: date, end: date, source: str | None = None
+) -> str:
     async with db.session() as s:
-        result = await s.execute(_FINGERPRINT_SQL, {"unders": underlyings, **_bounds(start, end)})
+        result = await s.execute(
+            _FINGERPRINT_SQL, {"unders": underlyings, "source": source, **_bounds(start, end)}
+        )
         count, ts_min, ts_max = result.one()
-    payload = f"{sorted(underlyings)}|{start}|{end}|{count}|{ts_min}|{ts_max}"
+    payload = f"{sorted(underlyings)}|{source}|{start}|{end}|{count}|{ts_min}|{ts_max}"
     return hashlib.sha256(payload.encode()).hexdigest()[:16]
 
 
@@ -84,10 +95,10 @@ async def _features_before(db: Database, day: date) -> dict[str, dict[str, float
 
 
 async def replay_snapshots(
-    db: Database, underlyings: list[str], start: date, end: date
+    db: Database, underlyings: list[str], start: date, end: date, source: str | None = None
 ) -> AsyncIterator[MarketState]:
     async with db.session() as s:
-        meta_rows = (await s.execute(_META_SQL, {"unders": underlyings})).all()
+        meta_rows = (await s.execute(_META_SQL, {"unders": underlyings, "source": source})).all()
     meta = {
         r.instrument_id: InstrumentMeta(
             instrument_id=r.instrument_id,
@@ -103,7 +114,10 @@ async def replay_snapshots(
 
     async with db.session() as s:
         ts_rows = (
-            await s.execute(_SNAPSHOT_TIMES_SQL, {"unders": underlyings, **_bounds(start, end)})
+            await s.execute(
+                _SNAPSHOT_TIMES_SQL,
+                {"unders": underlyings, "source": source, **_bounds(start, end)},
+            )
         ).all()
     snapshot_times: list[datetime] = [r[0] for r in ts_rows]
 
@@ -117,7 +131,9 @@ async def replay_snapshots(
             day_features = await _features_before(db, day)
 
         async with db.session() as s:
-            rows = (await s.execute(_SNAPSHOT_SQL, {"ts": ts, "unders": underlyings})).all()
+            rows = (
+                await s.execute(_SNAPSHOT_SQL, {"ts": ts, "unders": underlyings, "source": source})
+            ).all()
 
         quotes: dict[int, Quote] = {}
         spot: dict[str, float] = {}

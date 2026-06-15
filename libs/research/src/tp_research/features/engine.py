@@ -6,11 +6,12 @@ a summary the scheduler job uses for reporting and alerting.
 """
 
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, time
 
 from tp_core.db import Database
 from tp_core.db.repos import FeatureRepo
 from tp_core.telemetry.logging import get_logger
+from tp_research.chain import CLOSE_SNAPSHOT_IST
 from tp_research.features.context import build_context
 from tp_research.features.registry import REGISTRY
 
@@ -32,13 +33,15 @@ class EngineSummary:
         return 100.0 * self.computed / total if total else 0.0
 
 
-async def run_feature_engine(db: Database, trade_date: date) -> EngineSummary:
+async def run_feature_engine(
+    db: Database, trade_date: date, close_cut: time = CLOSE_SNAPSHOT_IST
+) -> EngineSummary:
     features = FeatureRepo(db)
     computed = skipped = failed = 0
     rows: list[dict[str, object]] = []
 
     for underlying in UNDERLYINGS:
-        ctx = await build_context(db, underlying, trade_date)
+        ctx = await build_context(db, underlying, trade_date, close_cut=close_cut)
         for spec in REGISTRY:
             try:
                 value = spec.fn(ctx)

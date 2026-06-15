@@ -119,6 +119,7 @@ async def run_experiment(
     vix_percentile_by_day: dict[date, float] | None = None,
     walkforward_oos: Metrics | None = None,
     datalake_root: Path = Path("datalake"),
+    synthetic_spread_pct: float | None = None,
 ) -> ExperimentOutcome:
     from decimal import Decimal
 
@@ -129,7 +130,10 @@ async def run_experiment(
     for scenario in FillScenario:
         strategy: Strategy = strategy_factory()
         config = BacktestConfig(
-            scenario=scenario, capital=Decimal(str(capital)), dataset_version=dataset_version
+            scenario=scenario,
+            capital=Decimal(str(capital)),
+            dataset_version=dataset_version,
+            synthetic_spread_pct=synthetic_spread_pct,
         )
         states: list[MarketState] = list(snapshots_by_scenario())
         results[scenario] = run_backtest(strategy, states, config)
@@ -152,6 +156,7 @@ async def run_experiment(
         "hypothesis": hypothesis,
         "params": params,
         "dataset_version": dataset_version,
+        "synthetic_spread_pct": synthetic_spread_pct,
         "verdict": verdict.summary(),
         "metrics": {s.value: m.as_dict() for s, m in metrics.items()},
         "monte_carlo": mc.as_dict() if mc else None,

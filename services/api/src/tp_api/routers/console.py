@@ -318,6 +318,12 @@ async def experiment_detail(state: State, run_id: str) -> dict[str, Any]:
             else None
         ),
         "regimeSharpes": summary.get("regime_sharpes", {}),
+        "reasons": summary.get("reasons", []),
+        "screen": bool(summary.get("screen", False)),
+        "entryFunnel": [
+            {"label": s.get("label"), "days": s.get("days")}
+            for s in summary.get("entry_funnel", [])
+        ],
     }
 
 
