@@ -25,6 +25,7 @@ from tp_scheduler.jobs import (
     instruments_refresh,
     nse_eod,
     options_digest,
+    options_live,
     token_check,
 )
 from tp_scheduler.jobs import feature_engine as feature_engine_job
@@ -67,6 +68,11 @@ def register_jobs(scheduler: AsyncIOScheduler, ctx: JobContext) -> None:
         ("vol_metrics", vol_metrics_job.run, weekday_cron(16, 0)),
         ("feature_engine", feature_engine_job.run, weekday_cron(16, 15)),
         ("options_digest", options_digest.run, weekday_cron(16, 20)),
+        (
+            "options_live",
+            options_live.run,
+            CronTrigger(day_of_week="mon-fri", hour="9-15", minute="0,30", timezone=IST),
+        ),
         ("paper_review", paper_review_job.run, weekday_cron(16, 30)),
         ("nse_eod", nse_eod.run, weekday_cron("18-22", 30)),
         ("breakout_scan", breakout_scan.run, weekday_cron("18-22", 45)),

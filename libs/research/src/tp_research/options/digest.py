@@ -7,7 +7,9 @@ rather than printing zeros or guesses.
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
+
+from tp_research.options.live import LiveOptionsSnapshot
 
 OPTIONS_UNDERLYINGS = ("NIFTY", "SENSEX", "BANKNIFTY")
 
@@ -80,3 +82,32 @@ def format_options_digest(
         values, as_of = per_underlying.get(name, ({}, None))
         blocks.append(_index_block(name, values, as_of))
     return f"{header}\n\n" + "\n\n".join(blocks) + f"\n\n{_FOOTER}"
+
+
+def _live_block(name: str, snap: LiveOptionsSnapshot | None) -> str:
+    if snap is None:
+        return f"*{name}* — no live snapshot (market closed or not subscribed)"
+    parts = [f"*{name}*  spot {snap.spot:,.0f}"]
+    line = []
+    if snap.atm_iv is not None:
+        line.append(f"ATM IV {snap.atm_iv:.1f}%")
+    if snap.atm_straddle is not None:
+        line.append(f"straddle {snap.atm_straddle:,.0f}")
+    if snap.pcr_oi is not None:
+        line.append(f"PCR {snap.pcr_oi:.2f}")
+    if line:
+        parts.append("  " + "  ·  ".join(line))
+    return "\n".join(parts)
+
+
+def format_live_options(
+    snapshots: dict[str, LiveOptionsSnapshot | None],
+    india_vix: float | None,
+    now: datetime,
+    underlyings: tuple[str, ...] = OPTIONS_UNDERLYINGS,
+) -> str:
+    """Intraday options snapshot from live recorded chains. Informational."""
+    header = f"⚡ Live options · {now:%H:%M} IST"
+    blocks = [_live_block(name, snapshots.get(name)) for name in underlyings]
+    vix = f"\n\nIndia VIX  {india_vix:.2f}" if india_vix is not None else ""
+    return f"{header}\n\n" + "\n\n".join(blocks) + vix + f"\n\n{_FOOTER}"
