@@ -13,6 +13,7 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from tp_core.db.engine import Database
 from tp_core.db.orm import EquityDailyBarRow
+from tp_research.equity.adjust import adjust_splits
 from tp_research.equity.bhav import DEFAULT_SERIES, parse_equity_bhav
 from tp_research.screener.models import DailyBar
 
@@ -92,9 +93,12 @@ async def load_recent_bars(
     symbols: list[str] | None = None,
     min_date: date | None = None,
     lookback_per_symbol: int = 300,
+    adjust: bool = True,
 ) -> dict[str, list[DailyBar]]:
     """Return per-symbol bars, oldest-first — exactly the shape `scan` wants.
-    Bounded by `lookback_per_symbol` so a long history doesn't load in full."""
+    Bounded by `lookback_per_symbol` so a long history doesn't load in full.
+    `adjust` back-adjusts for splits/bonuses (default on) so raw price gaps
+    don't corrupt the strategies; raw rows in the DB are untouched."""
     stmt = select(
         EquityDailyBarRow.symbol,
         EquityDailyBarRow.trade_date,
@@ -117,6 +121,9 @@ async def load_recent_bars(
             out.setdefault(sym, []).append(
                 DailyBar(sym, day, float(o), float(h), float(low), float(c), float(vol))
             )
+    if adjust:
+        for sym in out:
+            out[sym] = adjust_splits(out[sym])
     if lookback_per_symbol > 0:
         for sym in out:
             out[sym] = out[sym][-lookback_per_symbol:]
