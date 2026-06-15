@@ -28,8 +28,10 @@ INSTRUMENTS_URL = "https://assets.upstox.com/market-quote/instruments/exchange/c
 INDEX_KEYS = {
     "NIFTY": "NSE_INDEX|Nifty 50",
     "SENSEX": "BSE_INDEX|SENSEX",
+    "BANKNIFTY": "NSE_INDEX|Nifty Bank",
     "INDIAVIX": "NSE_INDEX|India VIX",
 }
+_INDEX_KEY_TO_UNDERLYING = {v: k for k, v in INDEX_KEYS.items()}
 
 
 class RateLimiter:
@@ -160,10 +162,10 @@ class UpstoxRest:
 
 
 async def download_instrument_master(
-    underlyings: frozenset[str] = frozenset({"NIFTY", "SENSEX"}),
+    underlyings: frozenset[str] = frozenset({"NIFTY", "SENSEX", "BANKNIFTY"}),
 ) -> list[Instrument]:
-    """Download and parse the Upstox instrument master for our universe:
-    index spots, index futures, and index options on NIFTY/SENSEX + India VIX."""
+    """Download and parse the Upstox instrument master for our universe: index
+    spots, index futures, and index options on NIFTY/SENSEX/BANKNIFTY + India VIX."""
     async with httpx.AsyncClient(timeout=120) as client:
         response = await client.get(INSTRUMENTS_URL)
         response.raise_for_status()
@@ -176,10 +178,10 @@ async def download_instrument_master(
         instrument_type = item.get("instrument_type", "")
 
         if segment_code in ("NSE_INDEX", "BSE_INDEX"):
-            trading_symbol = (item.get("trading_symbol") or "").upper()
-            mapped = {"NIFTY50": "NIFTY", "SENSEX": "SENSEX", "INDIAVIX": "INDIAVIX"}.get(
-                trading_symbol.replace(" ", "")
-            )
+            # Match on the stable instrument_key, not trading_symbol — Upstox has
+            # changed the latter (e.g. "NIFTY 50" -> "NIFTY", Bank Nifty ->
+            # "BANKNIFTY"), which silently dropped indices from the universe.
+            mapped = _INDEX_KEY_TO_UNDERLYING.get(item.get("instrument_key", ""))
             if mapped is None:
                 continue
             instruments.append(

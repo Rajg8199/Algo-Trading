@@ -17,7 +17,7 @@ from tp_research.features.registry import REGISTRY
 
 log = get_logger(__name__)
 
-UNDERLYINGS = ("NIFTY", "SENSEX")
+UNDERLYINGS = ("NIFTY", "SENSEX", "BANKNIFTY")
 
 
 @dataclass(frozen=True)

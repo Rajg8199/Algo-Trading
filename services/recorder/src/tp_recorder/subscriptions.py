@@ -9,7 +9,9 @@ from tp_core.telemetry.logging import get_logger
 
 log = get_logger(__name__)
 
-STRIKE_STEP = {"NIFTY": Decimal(50), "SENSEX": Decimal(100)}
+STRIKE_STEP = {"NIFTY": Decimal(50), "SENSEX": Decimal(100), "BANKNIFTY": Decimal(100)}
+
+OPTION_UNDERLYINGS = ("NIFTY", "SENSEX", "BANKNIFTY")
 
 
 class SubscriptionSet:
@@ -41,11 +43,12 @@ async def build_subscription_set(
     id_to_underlying: dict[int, str] = {}
 
     index_rows = await instruments.by_upstox_keys(
-        ["NSE_INDEX|Nifty 50", "BSE_INDEX|SENSEX", "NSE_INDEX|India VIX"]
+        ["NSE_INDEX|Nifty 50", "BSE_INDEX|SENSEX", "NSE_INDEX|Nifty Bank", "NSE_INDEX|India VIX"]
     )
     index_underlying = {
         "NSE_INDEX|Nifty 50": "NIFTY",
         "BSE_INDEX|SENSEX": "SENSEX",
+        "NSE_INDEX|Nifty Bank": "BANKNIFTY",
         "NSE_INDEX|India VIX": "INDIAVIX",
     }
     for key, iid in index_rows.items():
@@ -53,7 +56,7 @@ async def build_subscription_set(
         key_to_id[key] = iid
         id_to_underlying[iid] = index_underlying[key]
 
-    for underlying in ("NIFTY", "SENSEX"):
+    for underlying in OPTION_UNDERLYINGS:
         spot = spot_estimates.get(underlying)
         if spot is None:
             log.warning("no_spot_estimate_skipping_options", underlying=underlying)
