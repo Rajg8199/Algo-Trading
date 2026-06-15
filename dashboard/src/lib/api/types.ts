@@ -163,3 +163,39 @@ export interface PaperPnlRow {
   net_pnl: number | null;
   n_trades: number | null;
 }
+
+/** Equity breakout scanner — mirrors tp_research.screener output. A signal is
+ * an objective rule match, never a guarantee; `validated` gates whether the
+ * backtest has cleared the acceptance gate. */
+export interface BreakoutSignalRow {
+  symbol: string;
+  day: string;
+  entry: number;
+  stop: number;
+  target: number | null;
+  atr: number;
+  donchianHigh: number;
+  volumeRatio: number;
+  riskPerShare: number;
+  suggestedQty: number;
+}
+
+export interface BreakoutBacktestStats {
+  nTrades: number;
+  winRate: number | null;
+  expectancyR: number | null;
+  profitFactor: number | null;
+  maxDrawdownPct: number;
+  totalReturnPct: number;
+  avgHoldingDays: number | null;
+  acceptable: boolean;
+}
+
+export interface BreakoutScan {
+  asOf: string | null;
+  validated: boolean;
+  capital: number;
+  riskPct: number;
+  backtest: BreakoutBacktestStats | null;
+  signals: BreakoutSignalRow[];
+}

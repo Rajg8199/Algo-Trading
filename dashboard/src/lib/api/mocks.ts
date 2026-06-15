@@ -3,6 +3,7 @@
  * are served — mock data must never be mistakable for recorded data. */
 
 import type {
+  BreakoutScan,
   PaperLeaderboardRow,
   PaperPnlRow,
   PaperPositionRow,
@@ -155,3 +156,34 @@ export const mockPaperPnl: PaperPnlRow[] = Array.from({ length: 6 }, (_, i) => (
   trade_date: day(6 - i), strategy: "vrp_nifty",
   gross_pnl: 4000 - i * 600, net_pnl: 3400 - i * 600, n_trades: 2,
 }));
+
+export const mockBreakoutScan: BreakoutScan = {
+  asOf: day(0),
+  validated: false, // backtest has not cleared the gate — alerts stay UNVALIDATED
+  capital: 1_000_000,
+  riskPct: 0.01,
+  backtest: {
+    nTrades: 41,
+    winRate: 0.39,
+    expectancyR: 0.18,
+    profitFactor: 1.22,
+    maxDrawdownPct: 18.4,
+    totalReturnPct: 26.7,
+    avgHoldingDays: 9.3,
+    acceptable: false, // PF 1.22 < 1.3 gate → not promoted
+  },
+  signals: [
+    {
+      symbol: "NSE:TATAMOTORS", day: day(0), entry: 982.4, stop: 941.2, target: 1064.8,
+      atr: 20.6, donchianHigh: 978.0, volumeRatio: 2.8, riskPerShare: 41.2, suggestedQty: 242,
+    },
+    {
+      symbol: "NSE:RELIANCE", day: day(0), entry: 1432.0, stop: 1379.5, target: null,
+      atr: 26.2, donchianHigh: 1428.6, volumeRatio: 2.1, riskPerShare: 52.5, suggestedQty: 190,
+    },
+    {
+      symbol: "NSE:HINDALCO", day: day(0), entry: 678.9, stop: 651.3, target: 734.1,
+      atr: 13.8, donchianHigh: 676.2, volumeRatio: 1.9, riskPerShare: 27.6, suggestedQty: 362,
+    },
+  ],
+};

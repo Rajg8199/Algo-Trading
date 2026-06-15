@@ -7,6 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import { apiGet } from "./client";
 import {
+  mockBreakoutScan,
   mockBurnIn,
   mockPaperLeaderboard,
   mockPaperPnl,
@@ -21,6 +22,7 @@ import {
   mockTrades,
 } from "./mocks";
 import type {
+  BreakoutScan,
   BurnInDay,
   PaperLeaderboardRow,
   PaperPnlRow,
@@ -132,6 +134,14 @@ export function usePaperPnl() {
   return useQuery({
     queryKey: ["paper", "pnl"],
     queryFn: () => apiGet<PaperPnlRow[]>("/api/v1/pnl?mode=PAPER", mockPaperPnl),
+    refetchInterval: POLL_SLOW,
+  });
+}
+
+export function useBreakoutScan() {
+  return useQuery({
+    queryKey: ["signals", "breakout"],
+    queryFn: () => apiGet<BreakoutScan>("/api/v1/signals/breakout", mockBreakoutScan),
     refetchInterval: POLL_SLOW,
   });
 }
