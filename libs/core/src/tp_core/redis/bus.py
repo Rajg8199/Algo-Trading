@@ -70,14 +70,20 @@ class AlertQueue:
                 raise
 
     async def consume(self, consumer: str, block_ms: int = 5000) -> list[tuple[str, AlertEvent]]:
-        """Read pending alerts; returns (stream_id, event) pairs to ack after send."""
-        entries: Any = await self._redis.xreadgroup(
-            ALERTS_CONSUMER_GROUP,
-            consumer,
-            {Channel.ALERTS_STREAM.value: ">"},
-            count=50,
-            block=block_ms,
-        )
+        """Read pending alerts; returns (stream_id, event) pairs to ack after send.
+        A quiet stream makes the blocking read hit the client socket-read timeout
+        before `block_ms` elapses; that is "no messages", not a failure, so the
+        consumer loops instead of dying (mirrors the pub/sub robustness fix)."""
+        try:
+            entries: Any = await self._redis.xreadgroup(
+                ALERTS_CONSUMER_GROUP,
+                consumer,
+                {Channel.ALERTS_STREAM.value: ">"},
+                count=50,
+                block=block_ms,
+            )
+        except aioredis.TimeoutError:
+            return []
         out: list[tuple[str, AlertEvent]] = []
         for _stream, messages in entries or []:
             for stream_id, fields in messages:
