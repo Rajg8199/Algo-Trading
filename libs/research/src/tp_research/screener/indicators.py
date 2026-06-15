@@ -47,6 +47,26 @@ def true_ranges(
     return out
 
 
+def rsi(closes: Sequence[float], n: int) -> float | None:
+    """Simple-average RSI over the last n changes (Connors-style short RSI is the
+    intended use). 100 when there are no losses in the window."""
+    if n <= 0 or len(closes) < n + 1:
+        return None
+    gains = 0.0
+    losses = 0.0
+    for i in range(len(closes) - n, len(closes)):
+        change = closes[i] - closes[i - 1]
+        if change >= 0:
+            gains += change
+        else:
+            losses += -change
+    avg_loss = losses / n
+    if avg_loss == 0:
+        return 100.0
+    rs = (gains / n) / avg_loss
+    return 100.0 - 100.0 / (1.0 + rs)
+
+
 def atr(
     highs: Sequence[float], lows: Sequence[float], closes: Sequence[float], n: int
 ) -> float | None:

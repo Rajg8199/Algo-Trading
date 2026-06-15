@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, timedelta
 
 from tp_research.screener.indicators import atr
 from tp_research.screener.models import BreakoutParams, DailyBar
@@ -191,6 +191,31 @@ def backtest_breakout(
     for history in bars_by_symbol.values():
         trades.extend(backtest_symbol(history, params, entry_allowed))
     return summarize(trades, params)
+
+
+def period_breakdown(
+    trades: Sequence[Trade], params: BreakoutParams, n_periods: int = 3
+) -> list[tuple[str, BreakoutBacktestResult]]:
+    """Walk-forward stability: split trades into n equal CALENDAR periods by exit
+    date and summarize each. A real edge is positive across periods; a one-window
+    fluke is not. This is the out-of-sample sanity check for fixed-rule
+    strategies (which have no parameters to fit, so a single held-out period
+    would just be one fold — the per-period view is more informative)."""
+    if not trades:
+        return []
+    days = sorted(t.exit_day for t in trades)
+    start, end = days[0], days[-1]
+    span = (end - start).days or 1
+    out: list[tuple[str, BreakoutBacktestResult]] = []
+    for k in range(n_periods):
+        lo = start + timedelta(days=span * k // n_periods)
+        hi = start + timedelta(days=span * (k + 1) // n_periods)
+        if k == n_periods - 1:
+            sub = [t for t in trades if lo <= t.exit_day <= hi]
+        else:
+            sub = [t for t in trades if lo <= t.exit_day < hi]
+        out.append((f"{lo:%Y-%m}..{hi:%Y-%m}", summarize(sub, params)))
+    return out
 
 
 def summarize(trades: Sequence[Trade], params: BreakoutParams) -> BreakoutBacktestResult:
