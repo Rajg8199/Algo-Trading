@@ -199,3 +199,26 @@ export interface BreakoutScan {
   backtest: BreakoutBacktestStats | null;
   signals: BreakoutSignalRow[];
 }
+
+/** Live option chain ladder — latest recorded snapshot for the nearest expiry. */
+export interface OptionLeg {
+  iv: number | null;
+  oi: number | null;
+  oiChg: number | null;
+  ltp: number | null;
+  delta: number | null;
+}
+
+export interface OptionChainRow {
+  strike: number;
+  call: OptionLeg | null;
+  put: OptionLeg | null;
+}
+
+export interface OptionChain {
+  underlying: string;
+  ts: string | null;
+  spot: number | null;
+  expiry: string | null;
+  rows: OptionChainRow[];
+}

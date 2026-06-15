@@ -447,3 +447,64 @@ async def paper_signals(
         }
         for r in rows
     ]
+
+
+# ── option chain (live ladder) ───────────────────────────────────────────────
+_CHAIN_SQL = text("""
+    WITH snap AS (
+        SELECT max(oc.ts) AS snap_ts
+        FROM option_chain oc JOIN instruments i USING (instrument_id)
+        WHERE i.underlying = :u AND oc.ts > now() - interval '1 day'
+    )
+    SELECT i.expiry, i.strike, i.option_type, oc.iv, oc.oi, oc.oi_prev_day,
+           oc.ltp, oc.delta, oc.spot, snap.snap_ts
+    FROM option_chain oc JOIN instruments i USING (instrument_id)
+    JOIN snap ON oc.ts = snap.snap_ts
+    WHERE i.underlying = :u AND i.option_type IS NOT NULL
+""")
+
+
+def _leg(r: Any) -> dict[str, Any]:
+    oi = int(r["oi"]) if r["oi"] is not None else None
+    oi_prev = int(r["oi_prev_day"]) if r["oi_prev_day"] is not None else None
+    return {
+        "iv": float(r["iv"]) if r["iv"] is not None else None,
+        "oi": oi,
+        "oiChg": (oi - oi_prev) if oi is not None and oi_prev is not None else None,
+        "ltp": float(r["ltp"]) if r["ltp"] is not None else None,
+        "delta": float(r["delta"]) if r["delta"] is not None else None,
+    }
+
+
+@router.get("/options/chain")
+async def option_chain(
+    state: State, underlying: str = Query(default="NIFTY")
+) -> dict[str, Any]:
+    """Latest recorded chain ladder for the underlying's nearest expiry."""
+    key = f"chain:{underlying}"
+    hit: dict[str, Any] | None = _cached(key, 30.0)
+    if hit is not None:
+        return hit
+    async with state.db.session() as s:
+        rows = (await s.execute(_CHAIN_SQL, {"u": underlying})).mappings().all()
+    if not rows:
+        return _store(key, {"underlying": underlying, "ts": None, "spot": None,
+                            "expiry": None, "rows": []})
+    nearest = min(r["expiry"] for r in rows if r["expiry"] is not None)
+    spot = next((float(r["spot"]) for r in rows if r["spot"] is not None), None)
+    ts = rows[0]["snap_ts"]
+    ladder: dict[float, dict[str, Any]] = {}
+    for r in rows:
+        if r["expiry"] != nearest or r["strike"] is None:
+            continue
+        st = float(r["strike"])
+        slot = ladder.setdefault(st, {"strike": st, "call": None, "put": None})
+        slot["call" if r["option_type"] == "CE" else "put"] = _leg(r)
+    out_rows = [ladder[k] for k in sorted(ladder)]
+    return _store(key, {
+        "underlying": underlying,
+        "ts": ts.isoformat() if ts else None,
+        "spot": spot,
+        "expiry": nearest.isoformat(),
+        "rows": out_rows,
+    })

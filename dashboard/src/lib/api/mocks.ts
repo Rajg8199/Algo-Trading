@@ -4,6 +4,7 @@
 
 import type {
   BreakoutScan,
+  OptionChain,
   PaperLeaderboardRow,
   PaperPnlRow,
   PaperPositionRow,
@@ -156,6 +157,22 @@ export const mockPaperPnl: PaperPnlRow[] = Array.from({ length: 6 }, (_, i) => (
   trade_date: day(6 - i), strategy: "vrp_nifty",
   gross_pnl: 4000 - i * 600, net_pnl: 3400 - i * 600, n_trades: 2,
 }));
+
+export function mockOptionChain(underlying: string): OptionChain {
+  const spot = underlying === "SENSEX" ? 76250 : underlying === "BANKNIFTY" ? 51200 : 24500;
+  const step = underlying === "NIFTY" ? 50 : 100;
+  const atm = Math.round(spot / step) * step;
+  const rows = Array.from({ length: 11 }, (_, i) => {
+    const strike = atm + (i - 5) * step;
+    const d = (strike - spot) / spot;
+    return {
+      strike,
+      call: { iv: 14 + i * 0.2, oi: 90000 - Math.abs(strike - spot) * 2, oiChg: 4000 - i * 300, ltp: Math.max(2, (spot - strike) * 0.4 + 120), delta: Math.max(0.02, 0.5 - d * 6) },
+      put: { iv: 14.4 + i * 0.18, oi: 80000 - Math.abs(strike - spot) * 2, oiChg: 3000 - i * 250, ltp: Math.max(2, (strike - spot) * 0.4 + 110), delta: Math.min(-0.02, -0.5 - d * 6) },
+    };
+  });
+  return { underlying, ts: iso(2), spot, expiry: day(-3), rows };
+}
 
 export const mockBreakoutScan: BreakoutScan = {
   asOf: day(0),

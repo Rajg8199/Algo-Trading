@@ -8,6 +8,7 @@ import { useQuery } from "@tanstack/react-query";
 import { apiGet } from "./client";
 import {
   mockBreakoutScan,
+  mockOptionChain,
   mockBurnIn,
   mockPaperLeaderboard,
   mockPaperPnl,
@@ -23,6 +24,7 @@ import {
 } from "./mocks";
 import type {
   BreakoutScan,
+  OptionChain,
   BurnInDay,
   PaperLeaderboardRow,
   PaperPnlRow,
@@ -143,5 +145,17 @@ export function useBreakoutScan() {
     queryKey: ["signals", "breakout"],
     queryFn: () => apiGet<BreakoutScan>("/api/v1/signals/breakout", mockBreakoutScan),
     refetchInterval: POLL_SLOW,
+  });
+}
+
+export function useOptionChain(underlying: string) {
+  return useQuery({
+    queryKey: ["options", "chain", underlying],
+    queryFn: () =>
+      apiGet<OptionChain>(
+        `/api/v1/options/chain?underlying=${underlying}`,
+        mockOptionChain(underlying),
+      ),
+    refetchInterval: POLL_FAST,
   });
 }

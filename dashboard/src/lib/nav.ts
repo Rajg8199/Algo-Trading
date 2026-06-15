@@ -7,6 +7,7 @@ import {
   Microscope,
   Settings,
   ShieldAlert,
+  Table2,
   Zap,
   type LucideIcon,
 } from "lucide-react";
@@ -21,6 +22,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/dashboard", label: "Overview", icon: Gauge },
   { href: "/operations", label: "Operations", icon: Activity },
   { href: "/markets", label: "Markets", icon: CandlestickChart },
+  { href: "/option-chain", label: "Option Chain", icon: Table2 },
   { href: "/signals", label: "Signals", icon: Zap },
   { href: "/research", label: "Research", icon: Microscope },
   { href: "/experiments", label: "Experiments", icon: FlaskConical },
