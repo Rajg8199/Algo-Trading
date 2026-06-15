@@ -60,6 +60,22 @@ async def import_bhav_file(
     return await import_bars(db, parse_equity_bhav(raw, series))
 
 
+def filter_liquid(
+    bars_by_symbol: dict[str, list[DailyBar]], min_turnover_cr: float
+) -> dict[str, list[DailyBar]]:
+    """Keep symbols whose median daily turnover (close x volume) over the last
+    ~120 days clears the floor — tradeable names only, no microcap noise."""
+    floor = min_turnover_cr * 1e7  # 1 crore = 1e7 rupees
+    out: dict[str, list[DailyBar]] = {}
+    for sym, hist in bars_by_symbol.items():
+        if len(hist) < 120:
+            continue
+        turn = sorted(b.close * b.volume for b in hist[-120:])
+        if turn[len(turn) // 2] >= floor:
+            out[sym] = hist
+    return out
+
+
 async def universe(db: Database, min_days: int = 220) -> list[str]:
     """Symbols with enough history to evaluate the breakout rules at all."""
     async with db.session() as s:

@@ -19,6 +19,7 @@ from tp_core.telemetry.metrics import JOB_DURATION, JOB_RUNS
 from tp_core.timeutils import IST
 from tp_scheduler.context import JobContext, build_context
 from tp_scheduler.jobs import (
+    breakout_scan,
     data_validation,
     heartbeat,
     instruments_refresh,
@@ -66,6 +67,7 @@ def register_jobs(scheduler: AsyncIOScheduler, ctx: JobContext) -> None:
         ("feature_engine", feature_engine_job.run, weekday_cron(16, 15)),
         ("paper_review", paper_review_job.run, weekday_cron(16, 30)),
         ("nse_eod", nse_eod.run, weekday_cron("18-22", 30)),
+        ("breakout_scan", breakout_scan.run, weekday_cron("18-22", 45)),
         ("data_validation", data_validation.run, weekday_cron(21, 0)),
         ("heartbeat_open", heartbeat.run, weekday_cron(9, 20)),
         ("heartbeat_midday", heartbeat.run, weekday_cron(12, 30)),

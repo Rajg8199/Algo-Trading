@@ -28,6 +28,7 @@ PASSTHROUGH_DEDUP_PREFIXES = (
     "trade_",  # paper signals/exits: immediate, never batched
     "paper_started",
     "paper_review_",
+    "signal_",  # EOD breakout watchlist: one daily message, sent immediately
 )
 
 
