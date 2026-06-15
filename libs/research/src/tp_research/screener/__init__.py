@@ -10,6 +10,12 @@ from tp_research.screener.backtest import (
     summarize,
 )
 from tp_research.screener.models import BreakoutParams, BreakoutSignal, DailyBar
+from tp_research.screener.momentum import (
+    MomentumParams,
+    PortfolioResult,
+    backtest_momentum,
+    current_picks,
+)
 from tp_research.screener.signals import evaluate_breakout, scan
 
 __all__ = [
@@ -17,9 +23,13 @@ __all__ = [
     "BreakoutParams",
     "BreakoutSignal",
     "DailyBar",
+    "MomentumParams",
+    "PortfolioResult",
     "Trade",
     "backtest_breakout",
+    "backtest_momentum",
     "backtest_symbol",
+    "current_picks",
     "evaluate_breakout",
     "scan",
     "summarize",
