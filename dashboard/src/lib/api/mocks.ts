@@ -99,6 +99,15 @@ export const mockExperimentDetail: ExperimentDetail = {
   },
   monteCarlo: { maxDdP95: 98_000, maxDdP99: 131_000, maxDdP999: 162_000, riskOfRuin: 0.004, probNegativePnl: 0.06 },
   regimeSharpes: { low: 0.9, mid: 1.6, high: 0.4 },
+  reasons: ["near-miss; failed gates: sharpe, sample_size", "action: extend data, re-run SAME grid"],
+  screen: false,
+  entryFunnel: [
+    { label: "feature-complete days", days: 246 },
+    { label: "VRP ≥ 1.0", days: 198 },
+    { label: "IV pctile ≥ 70", days: 92 },
+    { label: "contango (slope ≥ 0)", days: 71 },
+    { label: "vov ≤ 1.5", days: 84 },
+  ],
 };
 
 export const mockEquity: EquityPoint[] = Array.from({ length: 180 }, (_, i) => {

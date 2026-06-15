@@ -21,7 +21,7 @@ const TRADE_COLUMNS: Column<TradeRow>[] = [
   {
     header: "Realized",
     cell: (r) => (
-      <span className={r.realizedPnl > 0 ? "text-emerald-500" : r.realizedPnl < 0 ? "text-red-500" : ""}>
+      <span className={r.realizedPnl > 0 ? "text-gain" : r.realizedPnl < 0 ? "text-loss" : ""}>
         {fmtRupees(r.realizedPnl)}
       </span>
     ),

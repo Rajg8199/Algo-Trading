@@ -18,6 +18,12 @@ export function EquityChart({ data, height = 320 }: { data: EquityPoint[]; heigh
   return (
     <ResponsiveContainer width="100%" height={height}>
       <ComposedChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
+        <defs>
+          <linearGradient id="equityFill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="var(--chart-1)" stopOpacity={0.22} />
+            <stop offset="100%" stopColor="var(--chart-1)" stopOpacity={0} />
+          </linearGradient>
+        </defs>
         <CartesianGrid strokeDasharray="3 3" className="stroke-border" vertical={false} />
         <XAxis dataKey="ts" tick={{ fontSize: 11 }} tickLine={false} axisLine={false} minTickGap={48} />
         <YAxis
@@ -43,10 +49,19 @@ export function EquityChart({ data, height = 320 }: { data: EquityPoint[]; heigh
           type="monotone"
           dataKey="drawdown"
           stroke="none"
-          fill="var(--destructive)"
-          fillOpacity={0.12}
+          fill="var(--loss)"
+          fillOpacity={0.14}
         />
-        <Line yAxisId="equity" type="monotone" dataKey="equity" stroke="var(--chart-1)" dot={false} strokeWidth={1.6} />
+        <Area
+          yAxisId="equity"
+          type="monotone"
+          dataKey="equity"
+          stroke="var(--chart-1)"
+          fill="url(#equityFill)"
+          strokeWidth={1.8}
+          dot={false}
+        />
+        <Line yAxisId="equity" type="monotone" dataKey="equity" stroke="var(--chart-1)" dot={false} strokeWidth={1.8} />
       </ComposedChart>
     </ResponsiveContainer>
   );

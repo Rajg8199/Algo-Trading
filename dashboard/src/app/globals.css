@@ -23,6 +23,9 @@
   --color-chart-3: var(--chart-3);
   --color-chart-2: var(--chart-2);
   --color-chart-1: var(--chart-1);
+  --color-gain: var(--gain);
+  --color-loss: var(--loss);
+  --color-info: var(--info);
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
@@ -67,11 +70,14 @@
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
   --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
+  --chart-1: oklch(0.55 0.17 256);
+  --chart-2: oklch(0.62 0.16 152);
+  --chart-3: oklch(0.7 0.16 70);
+  --chart-4: oklch(0.6 0.18 300);
+  --chart-5: oklch(0.6 0.21 20);
+  --gain: oklch(0.6 0.16 152);
+  --loss: oklch(0.58 0.22 25);
+  --info: oklch(0.55 0.17 256);
   --radius: 0.625rem;
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
@@ -102,11 +108,14 @@
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
+  --chart-1: oklch(0.65 0.16 256);
+  --chart-2: oklch(0.7 0.15 152);
+  --chart-3: oklch(0.78 0.15 75);
+  --chart-4: oklch(0.68 0.16 300);
+  --chart-5: oklch(0.68 0.19 20);
+  --gain: oklch(0.72 0.16 155);
+  --loss: oklch(0.68 0.2 23);
+  --info: oklch(0.65 0.16 256);
   --sidebar: oklch(0.205 0 0);
   --sidebar-foreground: oklch(0.985 0 0);
   --sidebar-primary: oklch(0.488 0.243 264.376);
@@ -126,5 +135,24 @@
   }
   html {
     @apply font-sans;
+  }
+  /* Theme switch: ease only colors, never layout (transform/opacity stay snappy). */
+  body,
+  .bg-card,
+  .bg-background,
+  .border {
+    transition:
+      background-color 200ms ease,
+      border-color 200ms ease;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
   }
 }

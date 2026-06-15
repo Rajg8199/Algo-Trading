@@ -61,6 +61,11 @@ export interface GateResult {
   detail: string;
 }
 
+export interface FunnelStage {
+  label: string;
+  days: number;
+}
+
 export interface ExperimentDetail extends ExperimentSummary {
   params: Record<string, unknown>;
   gates: GateResult[];
@@ -71,6 +76,9 @@ export interface ExperimentDetail extends ExperimentSummary {
   };
   monteCarlo: MonteCarloSummary | null;
   regimeSharpes: Record<string, number>;
+  reasons: string[];
+  screen: boolean;
+  entryFunnel: FunnelStage[];
 }
 
 export interface ScenarioMetrics {

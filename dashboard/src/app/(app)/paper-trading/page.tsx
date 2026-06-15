@@ -1,7 +1,10 @@
 "use client";
 
 import { FlaskConical } from "lucide-react";
+import { useMemo } from "react";
 
+import { Sparkline } from "@/components/charts/sparkline";
+import { TimeSeriesChart } from "@/components/charts/time-series-chart";
 import { PageHeader } from "@/components/layout/page-header";
 import { EmptyState, LoadingBlock } from "@/components/feedback/states";
 import { MockBadge, StatusPill } from "@/components/status/status-pill";
@@ -22,9 +25,7 @@ const POSITION_COLUMNS: Column<PaperPositionRow>[] = [
   { header: "Instrument", cell: (r) => <span className="font-mono text-xs">#{r.instrument_id}</span> },
   {
     header: "Qty",
-    cell: (r) => (
-      <span className={r.qty < 0 ? "text-red-500" : "text-emerald-500"}>{r.qty}</span>
-    ),
+    cell: (r) => <span className={r.qty < 0 ? "text-loss" : "text-gain"}>{r.qty}</span>,
     className: "text-right",
   },
   { header: "Avg", cell: (r) => fmtNum(r.avg_price), className: "text-right" },
@@ -37,9 +38,7 @@ const PNL_COLUMNS: Column<PaperPnlRow>[] = [
   {
     header: "Net PnL",
     cell: (r) => (
-      <span className={(r.net_pnl ?? 0) >= 0 ? "text-emerald-500" : "text-red-500"}>
-        {fmtRupees(r.net_pnl)}
-      </span>
+      <span className={(r.net_pnl ?? 0) >= 0 ? "text-gain" : "text-loss"}>{fmtRupees(r.net_pnl)}</span>
     ),
     className: "text-right",
   },
@@ -74,6 +73,29 @@ export default function PaperTradingPage() {
     (pnl.data?.isMock ?? false);
   const top = leaderboard.data?.data[0];
 
+  /** Real cumulative-PnL series built from the daily PnL rows. Overall curve
+   * (all strategies summed per day) + a per-strategy curve for sparklines. */
+  const { overall, byStrategy } = useMemo(() => {
+    const rows = [...(pnl.data?.data ?? [])].sort((a, b) => a.trade_date.localeCompare(b.trade_date));
+    const perDate = new Map<string, number>();
+    const perStrat = new Map<string, number[]>();
+    for (const r of rows) {
+      const v = r.net_pnl ?? 0;
+      perDate.set(r.trade_date, (perDate.get(r.trade_date) ?? 0) + v);
+      const arr = perStrat.get(r.strategy) ?? [];
+      arr.push((arr.at(-1) ?? 0) + v);
+      perStrat.set(r.strategy, arr);
+    }
+    let running = 0;
+    const overallSeries = [...perDate.entries()]
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([ts, v]) => {
+        running += v;
+        return { ts, value: running };
+      });
+    return { overall: overallSeries, byStrategy: perStrat };
+  }, [pnl.data]);
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -96,6 +118,25 @@ export default function PaperTradingPage() {
         />
         <StatCard label="Total orders" value={top?.trades ?? 0} hint="all strategies" />
       </div>
+
+      {overall.length > 1 ? (
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="text-sm">Cumulative paper PnL</CardTitle>
+            <span className={`text-sm font-semibold tabular-nums ${(overall.at(-1)?.value ?? 0) >= 0 ? "text-gain" : "text-loss"}`}>
+              {fmtRupees(overall.at(-1)?.value ?? 0)}
+            </span>
+          </CardHeader>
+          <CardContent>
+            <TimeSeriesChart
+              data={overall}
+              height={200}
+              color={(overall.at(-1)?.value ?? 0) >= 0 ? "var(--gain)" : "var(--loss)"}
+              valueFormatter={(v) => fmtRupees(v)}
+            />
+          </CardContent>
+        </Card>
+      ) : null}
 
       <div className="grid gap-6 xl:grid-cols-2">
         <Card>
@@ -143,21 +184,23 @@ export default function PaperTradingPage() {
           <CardTitle className="text-sm">Strategy leaderboard</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
-          {(leaderboard.data?.data ?? []).map((row, i) => (
-            <div key={row.strategy} className="flex items-center justify-between rounded-md border p-3">
-              <span className="text-sm font-medium">
-                #{i + 1} {row.strategy}
-              </span>
-              <div className="flex items-center gap-4 text-sm tabular-nums">
-                <span className={row.netPnl >= 0 ? "text-emerald-500" : "text-red-500"}>
-                  {fmtRupees(row.netPnl)}
+          {(leaderboard.data?.data ?? []).map((row, i) => {
+            const curve = byStrategy.get(row.strategy) ?? [];
+            return (
+              <div key={row.strategy} className="flex items-center justify-between gap-3 rounded-md border p-3">
+                <span className="min-w-0 truncate text-sm font-medium">
+                  #{i + 1} {row.strategy}
                 </span>
-                <span className="text-xs text-muted-foreground">
-                  {row.days}d · {row.trades} orders
-                </span>
+                <div className="flex items-center gap-4 text-sm tabular-nums">
+                  {curve.length > 1 ? <Sparkline data={curve} /> : null}
+                  <span className={row.netPnl >= 0 ? "text-gain" : "text-loss"}>{fmtRupees(row.netPnl)}</span>
+                  <span className="hidden text-xs text-muted-foreground sm:inline">
+                    {row.days}d · {row.trades} orders
+                  </span>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </CardContent>
       </Card>
 
