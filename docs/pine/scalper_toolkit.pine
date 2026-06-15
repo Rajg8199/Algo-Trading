@@ -1,0 +1,56 @@
+//@version=5
+// Scalper Toolkit — VWAP + EMA(9/21) + RSI + ATR, for 3/5-min intraday charts.
+//
+// HONEST LABEL: this is a discretionary CHARTING + ALERT aid, NOT a backtested
+// or validated edge. Scalping is the most cost-sensitive game (brokerage + STT
+// + slippage on every trade); a signal is a context cue, not a "sure shot".
+// Manage risk: fixed stop, position size for the loss, respect the session.
+indicator("Scalper Toolkit (VWAP+EMA+RSI)", overlay=true)
+
+// ── Inputs ───────────────────────────────────────────────────────────────
+emaFastLen = input.int(9,   "EMA fast", minval=1)
+emaSlowLen = input.int(21,  "EMA slow", minval=1)
+rsiLen     = input.int(7,   "RSI length", minval=1)
+atrLen     = input.int(14,  "ATR length", minval=1)
+atrStop    = input.float(1.0,"ATR stop multiple", minval=0.2, step=0.1)
+rr         = input.float(1.5,"Reward : risk (target)", minval=0.5, step=0.1)
+sess       = input.session("0920-1510", "Session (skip open/close noise)")
+
+// ── Calcs ────────────────────────────────────────────────────────────────
+vwapVal = ta.vwap
+emaF    = ta.ema(close, emaFastLen)
+emaS    = ta.ema(close, emaSlowLen)
+rsiVal  = ta.rsi(close, rsiLen)
+atrVal  = ta.atr(atrLen)
+
+inSession = not na(time(timeframe.period, sess))
+longBias  = close > vwapVal and emaF > emaS
+shortBias = close < vwapVal and emaF < emaS
+
+// pullback-to-fast-EMA reclaim in the trend direction
+longTrig  = inSession and longBias  and low  <= emaF and close > emaF and rsiVal > 50
+shortTrig = inSession and shortBias and high >= emaF and close < emaF and rsiVal < 50
+
+longStop  = close - atrStop * atrVal
+longTgt   = close + rr * atrStop * atrVal
+shortStop = close + atrStop * atrVal
+shortTgt  = close - rr * atrStop * atrVal
+
+// ── Plots ────────────────────────────────────────────────────────────────
+plot(vwapVal, "VWAP", color=color.new(color.purple, 0), linewidth=2)
+plot(emaF, "EMA fast", color=color.new(color.orange, 0))
+plot(emaS, "EMA slow", color=color.new(color.blue, 0))
+
+plotshape(longTrig,  "Long",  style=shape.triangleup,   location=location.belowbar,
+          color=color.new(color.teal, 0), size=size.tiny, text="L")
+plotshape(shortTrig, "Short", style=shape.triangledown, location=location.abovebar,
+          color=color.new(color.red, 0),  size=size.tiny, text="S")
+
+plot(longTrig  ? longStop  : na, "Long stop",   color=color.new(color.red, 0),   style=plot.style_circles)
+plot(longTrig  ? longTgt   : na, "Long target", color=color.new(color.green, 0), style=plot.style_circles)
+plot(shortTrig ? shortStop : na, "Short stop",  color=color.new(color.red, 0),   style=plot.style_cross)
+plot(shortTrig ? shortTgt  : na, "Short target",color=color.new(color.green, 0), style=plot.style_cross)
+
+// ── Alerts (set these in TradingView's alert dialog) ───────────────────────
+alertcondition(longTrig,  "Scalp Long",  'Scalp LONG {{ticker}} @ {{close}} — above VWAP, EMA9>EMA21 pullback')
+alertcondition(shortTrig, "Scalp Short", 'Scalp SHORT {{ticker}} @ {{close}} — below VWAP, EMA9<EMA21 pullback')

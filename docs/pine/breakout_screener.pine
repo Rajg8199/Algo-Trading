@@ -1,0 +1,46 @@
+//@version=5
+// Breakout Screener — Donchian + Trend + Volume + ATR stop
+// Mirrors tp_research.screener breakout rules. NOTE: in this platform's
+// backtest (NSE 2024-26) these rules did NOT clear the acceptance gate
+// (no proven edge). This is a charting/visualisation aid, not a buy signal.
+indicator("Breakout Screener (Donchian+Trend+Vol)", overlay=true)
+
+// ── Inputs ───────────────────────────────────────────────────────────────
+lookback   = input.int(20,   "Breakout lookback (prior N-day high)", minval=2)
+fastLen    = input.int(50,   "Trend fast SMA",  minval=1)
+slowLen    = input.int(200,  "Trend slow SMA",  minval=1)
+volLen     = input.int(20,   "Volume avg length", minval=1)
+volMult    = input.float(1.5,"Volume multiple", minval=1.0, step=0.1)
+atrLen     = input.int(14,   "ATR length", minval=1)
+atrStopMlt = input.float(2.0,"ATR stop multiple", minval=0.5, step=0.1)
+useTrend   = input.bool(true,"Require uptrend (close>200SMA and 50>200)")
+useVol     = input.bool(true,"Require volume confirmation")
+
+// ── Calculations (no lookahead: prior N-day high excludes the current bar) ─
+donchianHigh = ta.highest(high, lookback)[1]
+smaFast      = ta.sma(close, fastLen)
+smaSlow      = ta.sma(close, slowLen)
+avgVol       = ta.sma(volume, volLen)
+atrVal       = ta.atr(atrLen)
+
+trendOK  = not useTrend or (close > smaSlow and smaFast > smaSlow)
+volOK    = not useVol   or (volume > volMult * avgVol)
+breakout = close > donchianHigh and trendOK and volOK
+
+stopLevel = close - atrStopMlt * atrVal
+target    = close + 2.0 * atrStopMlt * atrVal   // 2R reference
+
+// ── Plots ──────────────────────────────────────────────────────────────
+plot(smaFast,      "SMA fast", color=color.new(color.orange, 0))
+plot(smaSlow,      "SMA slow", color=color.new(color.blue, 0))
+plot(donchianHigh, "Prior N-day high", color=color.new(color.gray, 40), style=plot.style_stepline)
+
+plotshape(breakout, "Breakout", style=shape.triangleup, location=location.belowbar,
+          color=color.new(color.teal, 0), size=size.small, text="BO")
+bgcolor(breakout ? color.new(color.teal, 90) : na)
+
+plot(breakout ? stopLevel : na, "ATR stop", color=color.new(color.red, 0),   style=plot.style_circles)
+plot(breakout ? target    : na, "2R target", color=color.new(color.green, 0), style=plot.style_circles)
+
+alertcondition(breakout, "Breakout signal",
+     'Breakout on {{ticker}}: close above prior high with trend + volume')
