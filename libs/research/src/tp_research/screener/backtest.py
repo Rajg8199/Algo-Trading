@@ -16,6 +16,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass
+from datetime import date
 
 from tp_research.screener.indicators import atr
 from tp_research.screener.models import BreakoutParams, DailyBar
@@ -27,6 +28,8 @@ class Trade:
     symbol: str
     entry_idx: int
     exit_idx: int
+    entry_day: date
+    exit_day: date
     entry: float
     exit: float
     initial_risk: float
@@ -74,7 +77,14 @@ class BreakoutBacktestResult:
         )
 
 
-def backtest_symbol(history: Sequence[DailyBar], params: BreakoutParams) -> list[Trade]:
+def backtest_symbol(
+    history: Sequence[DailyBar],
+    params: BreakoutParams,
+    entry_allowed: frozenset[date] | None = None,
+) -> list[Trade]:
+    """`entry_allowed`, when given, gates NEW entries to those dates — used for a
+    market-regime filter (e.g. only enter when the broad market is in an
+    uptrend). Exits are never gated."""
     trades: list[Trade] = []
     position: _OpenPos | None = None
     pending = None  # BreakoutSignal queued for next-open entry
@@ -103,6 +113,8 @@ def backtest_symbol(history: Sequence[DailyBar], params: BreakoutParams) -> list
                         symbol=bar.symbol,
                         entry_idx=position.entry_idx,
                         exit_idx=t,
+                        entry_day=history[position.entry_idx].day,
+                        exit_day=bar.day,
                         entry=position.entry,
                         exit=exit_price,
                         initial_risk=position.initial_risk,
@@ -114,8 +126,10 @@ def backtest_symbol(history: Sequence[DailyBar], params: BreakoutParams) -> list
                 )
                 position = None
 
-        # 3) evaluate a fresh signal at today's close (enters next open)
-        if position is None and pending is None and t + 1 < len(history):
+        # 3) evaluate a fresh signal at today's close (enters next open), subject
+        #    to the market-regime gate
+        regime_ok = entry_allowed is None or bar.day in entry_allowed
+        if position is None and pending is None and t + 1 < len(history) and regime_ok:
             sig = evaluate_breakout(history[: t + 1], params)
             if sig is not None:
                 pending = sig
@@ -129,6 +143,8 @@ def backtest_symbol(history: Sequence[DailyBar], params: BreakoutParams) -> list
                 symbol=last.symbol,
                 entry_idx=position.entry_idx,
                 exit_idx=t,
+                entry_day=history[position.entry_idx].day,
+                exit_day=last.day,
                 entry=position.entry,
                 exit=last.close,
                 initial_risk=position.initial_risk,
@@ -167,11 +183,13 @@ def _check_exit(
 
 
 def backtest_breakout(
-    bars_by_symbol: dict[str, Sequence[DailyBar]], params: BreakoutParams
+    bars_by_symbol: dict[str, Sequence[DailyBar]],
+    params: BreakoutParams,
+    entry_allowed: frozenset[date] | None = None,
 ) -> BreakoutBacktestResult:
     trades: list[Trade] = []
     for history in bars_by_symbol.values():
-        trades.extend(backtest_symbol(history, params))
+        trades.extend(backtest_symbol(history, params, entry_allowed))
     return summarize(trades, params)
 
 
@@ -186,11 +204,12 @@ def summarize(trades: Sequence[Trade], params: BreakoutParams) -> BreakoutBackte
     gross_loss = sum(t.return_pct for t in losses)
     profit_factor = gross_win / abs(gross_loss) if gross_loss < 0 else None
 
-    # fixed-fractional equity curve (each trade risks risk_pct), by exit order
+    # fixed-fractional equity curve (each trade risks risk_pct), in true exit-date
+    # order so the drawdown is comparable across symbols
     equity = 1.0
     peak = 1.0
     max_dd = 0.0
-    for t in sorted(trades, key=lambda x: x.exit_idx):
+    for t in sorted(trades, key=lambda x: x.exit_day):
         equity *= 1.0 + t.r_multiple * params.risk_pct
         peak = max(peak, equity)
         max_dd = max(max_dd, (peak - equity) / peak)

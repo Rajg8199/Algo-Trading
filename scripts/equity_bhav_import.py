@@ -31,7 +31,7 @@ from tp_core.db import Database
 
 
 def _p(msg: str) -> None:
-    print(msg)  # noqa: T201 — ops CLI
+    print(msg, flush=True)  # noqa: T201 — ops CLI; flush so background runs stream
 
 
 def _d(s: str) -> date:
@@ -67,6 +67,8 @@ async def _backfill(db: Database, start: date, end: date) -> None:
                 _p(f"  {day} imported {n} bars")
             except FileNotFoundError:
                 _p(f"  {day} not published (holiday / not yet) — skipped")
+            except Exception as exc:  # long run must survive transient network errors
+                _p(f"  {day} ERROR ({type(exc).__name__}: {exc}) — skipped, re-run to fill")
         day += timedelta(days=1)
     _p(f"backfill done: {total} bars over {days} trading days")
 
