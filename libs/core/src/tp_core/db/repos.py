@@ -348,6 +348,21 @@ class FeatureRepo:
             rows = result.tuples().all()
         return list(reversed(rows))
 
+    async def latest(self, entity: str) -> tuple[dict[str, float], datetime | None]:
+        """Most recent value of every feature for `entity` (DISTINCT ON name),
+        plus the freshest timestamp. Empty dict if the entity has no features."""
+        async with self._db.session() as s:
+            result = await s.execute(
+                select(FeatureValueRow.feature_name, FeatureValueRow.value, FeatureValueRow.ts)
+                .where(FeatureValueRow.entity == entity)
+                .order_by(FeatureValueRow.feature_name, FeatureValueRow.ts.desc())
+                .distinct(FeatureValueRow.feature_name)
+            )
+            rows = result.all()
+        values = {name: val for name, val, _ in rows if val is not None}
+        latest_ts = max((ts for _, _, ts in rows), default=None)
+        return values, latest_ts
+
 
 class EventsRepo:
     def __init__(self, db: Database) -> None:
