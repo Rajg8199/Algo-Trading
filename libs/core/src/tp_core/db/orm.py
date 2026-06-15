@@ -169,6 +169,32 @@ class EquityDailyBarRow(Base):
     source: Mapped[str] = mapped_column(String(16), server_default=text("'NSEBHAV'"))
 
 
+class ScalpSignalRow(Base):
+    """Forward-test log of emitted scalp signals + their graded outcome. Lets us
+    measure how the UNVALIDATED scalp engine actually performs, live, before
+    trusting it. Identity = (underlying, timeframe, ts, side) so re-runs don't
+    duplicate."""
+
+    __tablename__ = "scalp_signals"
+    __table_args__ = (
+        Index("ix_scalp_signals_unique", "underlying", "timeframe", "ts", "side", unique=True),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    ts: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    underlying: Mapped[str] = mapped_column(String(16))
+    timeframe: Mapped[str] = mapped_column(String(8))
+    side: Mapped[str] = mapped_column(String(5))
+    entry: Mapped[Decimal] = mapped_column(Numeric(12, 2))
+    stop: Mapped[Decimal] = mapped_column(Numeric(12, 2))
+    target: Mapped[Decimal] = mapped_column(Numeric(12, 2))
+    rsi: Mapped[float | None] = mapped_column(REAL)
+    outcome: Mapped[str | None] = mapped_column(String(8))  # WIN | LOSS | OPEN | None
+    exit_price: Mapped[Decimal | None] = mapped_column(Numeric(12, 2))
+    r_multiple: Mapped[float | None] = mapped_column(REAL)
+    evaluated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
 class OrderRow(Base):
     __tablename__ = "orders"
     __table_args__ = (Index("ix_orders_strategy_created", "strategy", "created_at"),)

@@ -10,8 +10,10 @@ signals (not trend continuations) to avoid over-trading.
 from datetime import date, time
 
 from sqlalchemy import text
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from tp_research.scalp import ScalpBar, ScalpParams, ScalpSignal, scalp_signal
 
+from tp_core.db.orm import ScalpSignalRow
 from tp_core.models import Severity
 from tp_core.telemetry.logging import get_logger
 from tp_core.timeutils import now_ist
@@ -78,4 +80,14 @@ async def run(ctx: JobContext, for_date: date | None = None) -> None:
                 f"signal_scalp_{u}_{tf.split()[0]}m_{sig.side}_{sig.ts:%H%M}",
                 _format(u, tf, sig),
             )
+            # forward-test log (idempotent on the natural key) for later grading
+            stmt = pg_insert(ScalpSignalRow).values(
+                ts=sig.ts, underlying=u, timeframe=f"{tf.split()[0]}m", side=sig.side,
+                entry=sig.price, stop=sig.stop, target=sig.target, rsi=sig.rsi,
+            )
+            stmt = stmt.on_conflict_do_nothing(
+                index_elements=["underlying", "timeframe", "ts", "side"]
+            )
+            async with ctx.db.session() as s:
+                await s.execute(stmt)
             log.info("scalp_signal", underlying=u, tf=tf, side=sig.side, price=sig.price)
