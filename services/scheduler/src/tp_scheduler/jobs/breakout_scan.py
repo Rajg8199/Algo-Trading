@@ -11,8 +11,8 @@ from datetime import date
 
 from tp_research.equity.bhav import download_equity_bhav
 from tp_research.equity.importer import filter_liquid, import_bhav_file, load_recent_bars, universe
-from tp_research.screener import BreakoutParams, scan
-from tp_research.screener.alerts import format_breakout_alert
+from tp_research.screener import BreakoutParams, MomentumParams, current_picks, scan
+from tp_research.screener.alerts import format_breakout_alert, format_momentum_alert
 
 from tp_core.models import Severity
 from tp_core.telemetry.logging import get_logger
@@ -47,6 +47,12 @@ async def run(ctx: JobContext, for_date: date | None = None) -> None:
         "breakout_scan_done", date=today.isoformat(), universe=len(liquid), signals=len(signals)
     )
 
-    message = format_breakout_alert(signals, today, validated=VALIDATED)
     # `signal_` is a passthrough prefix in the telegram router -> sent immediately.
+    message = format_breakout_alert(signals, today, validated=VALIDATED)
     await ctx.alert(Severity.INFO, f"signal_breakout_{today.isoformat()}", message)
+
+    # Momentum book — also UNVALIDATED (see docs/research/momentum-screen.md).
+    picks, risk_on = current_picks(dict(liquid), MomentumParams())
+    mom = format_momentum_alert(picks, today, risk_on=risk_on, validated=VALIDATED)
+    await ctx.alert(Severity.INFO, f"signal_momentum_{today.isoformat()}", mom)
+    log.info("momentum_book_sent", date=today.isoformat(), picks=len(picks), risk_on=risk_on)

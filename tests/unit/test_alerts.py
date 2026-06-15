@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from datetime import date
 
-from tp_research.screener.alerts import format_breakout_alert
+from tp_research.screener.alerts import format_breakout_alert, format_momentum_alert
 from tp_research.screener.models import BreakoutSignal
 
 DAY = date(2026, 6, 12)
@@ -44,3 +44,15 @@ def test_position_size_appears() -> None:
         [_sig("NSE:X", 3.0)], DAY, validated=False, capital=1_000_000, risk_pct=0.01
     )
     assert "1250 sh" in msg
+
+
+def test_momentum_lists_picks_and_labels_unvalidated() -> None:
+    msg = format_momentum_alert(["NSE:TCS", "NSE:INFY"], DAY, risk_on=True, validated=False)
+    assert "TCS" in msg and "INFY" in msg
+    assert "UNVALIDATED" in msg
+
+
+def test_momentum_cash_when_risk_off() -> None:
+    msg = format_momentum_alert(["NSE:TCS"], DAY, risk_on=False, validated=False)
+    assert "CASH" in msg
+    assert "TCS" not in msg  # holdings suppressed when market is risk-off

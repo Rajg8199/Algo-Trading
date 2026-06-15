@@ -50,3 +50,21 @@ def format_breakout_alert(
     sizing = f"(sizing: {risk_pct:.0%} risk on ₹{capital:,.0f})"
     top = f"{header} · {len(signals)} candidates\n\n"
     return top + "\n".join(lines) + extra + f"\n\n{status}\n{sizing}"
+
+
+def format_momentum_alert(
+    picks: list[str], as_of: date, *, risk_on: bool, validated: bool, limit: int = 25
+) -> str:
+    """Today's cross-sectional momentum book. Like the breakout, this strategy
+    did not clear its gate, so it is labelled UNVALIDATED unless `validated`."""
+    header = f"📊 Momentum book · {as_of:%d %b %Y}"
+    if not risk_on:
+        body = "Market below its 200-DMA → momentum is in CASH (no holdings)."
+    elif not picks:
+        body = "No eligible names today."
+    else:
+        tickers = [p.replace("NSE:", "") for p in picks[:limit]]
+        more = f" …+{len(picks) - limit} more" if len(picks) > limit else ""
+        body = "Top relative-strength names:\n" + ", ".join(tickers) + more
+    status = "✅ VALIDATED strategy" if validated else _UNVALIDATED_BANNER
+    return f"{header}\n\n{body}\n\n{status}"
