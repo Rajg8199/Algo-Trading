@@ -47,6 +47,18 @@ def true_ranges(
     return out
 
 
+def ema(values: Sequence[float], n: int) -> float | None:
+    """Exponential moving average of the whole series (seeded with the first
+    value). None if there aren't at least n points."""
+    if n <= 0 or len(values) < n:
+        return None
+    k = 2.0 / (n + 1.0)
+    e = values[0]
+    for v in values[1:]:
+        e = v * k + e * (1.0 - k)
+    return e
+
+
 def rsi(closes: Sequence[float], n: int) -> float | None:
     """Simple-average RSI over the last n changes (Connors-style short RSI is the
     intended use). 100 when there are no losses in the window."""
