@@ -1,5 +1,6 @@
 import {
   Activity,
+  CandlestickChart,
   FlaskConical,
   Gauge,
   LineChart,
@@ -18,6 +19,7 @@ export interface NavItem {
 export const NAV_ITEMS: NavItem[] = [
   { href: "/dashboard", label: "Overview", icon: Gauge },
   { href: "/operations", label: "Operations", icon: Activity },
+  { href: "/markets", label: "Markets", icon: CandlestickChart },
   { href: "/research", label: "Research", icon: Microscope },
   { href: "/experiments", label: "Experiments", icon: FlaskConical },
   { href: "/backtests", label: "Backtests", icon: LineChart },
