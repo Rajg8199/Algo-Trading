@@ -5,6 +5,7 @@
 import type {
   BreakoutScan,
   OptionChain,
+  ScalpReview,
   PaperLeaderboardRow,
   PaperPnlRow,
   PaperPositionRow,
@@ -157,6 +158,29 @@ export const mockPaperPnl: PaperPnlRow[] = Array.from({ length: 6 }, (_, i) => (
   trade_date: day(6 - i), strategy: "vrp_nifty",
   gross_pnl: 4000 - i * 600, net_pnl: 3400 - i * 600, n_trades: 2,
 }));
+
+export const mockScalpReview: ScalpReview = {
+  days: 30,
+  overall: { n: 24, wins: 8, losses: 13, open: 3, hitRate: 8 / 21, expectancyR: -0.18 },
+  byTimeframe: [
+    { timeframe: "3m", n: 14, wins: 5, losses: 8, open: 1, hitRate: 5 / 13, expectancyR: -0.21 },
+    { timeframe: "5m", n: 10, wins: 3, losses: 5, open: 2, hitRate: 3 / 8, expectancyR: -0.13 },
+  ],
+  recent: Array.from({ length: 8 }, (_, i) => {
+    const out = i % 3 === 0 ? "WIN" : i % 3 === 1 ? "LOSS" : "OPEN";
+    return {
+      ts: iso(i * 25 + 5),
+      underlying: ["NIFTY", "SENSEX", "BANKNIFTY"][i % 3],
+      timeframe: i % 2 ? "5m" : "3m",
+      side: i % 2 ? "SHORT" : "LONG",
+      entry: 24500 - i * 7,
+      stop: 24470 - i * 7,
+      target: 24545 - i * 7,
+      outcome: out,
+      rMultiple: out === "WIN" ? 1.5 : out === "LOSS" ? -1 : 0.2,
+    };
+  }),
+};
 
 export function mockOptionChain(underlying: string): OptionChain {
   const spot = underlying === "SENSEX" ? 76250 : underlying === "BANKNIFTY" ? 51200 : 24500;

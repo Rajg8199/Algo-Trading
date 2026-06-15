@@ -222,3 +222,32 @@ export interface OptionChain {
   expiry: string | null;
   rows: OptionChainRow[];
 }
+
+/** Scalp forward-test scorecard — UNVALIDATED cues graded vs actual price. */
+export interface ScalpReviewStats {
+  n: number;
+  wins: number;
+  losses: number;
+  open: number;
+  hitRate: number | null;
+  expectancyR: number | null;
+}
+
+export interface ScalpReviewRow {
+  ts: string;
+  underlying: string;
+  timeframe: string;
+  side: string;
+  entry: number;
+  stop: number;
+  target: number;
+  outcome: string | null;
+  rMultiple: number | null;
+}
+
+export interface ScalpReview {
+  days: number;
+  overall: ScalpReviewStats;
+  byTimeframe: (ScalpReviewStats & { timeframe: string })[];
+  recent: ScalpReviewRow[];
+}

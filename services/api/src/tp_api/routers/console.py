@@ -508,3 +508,68 @@ async def option_chain(
         "expiry": nearest.isoformat(),
         "rows": out_rows,
     })
+
+
+# ── scalp forward-test review ────────────────────────────────────────────────
+_SCALP_SQL = text("""
+    SELECT ts, underlying, timeframe, side, entry, stop, target, outcome, r_multiple
+    FROM scalp_signals
+    WHERE ts > now() - make_interval(days => :days)
+    ORDER BY ts DESC
+""")
+
+
+def _review_dict(stats: Any) -> dict[str, Any]:
+    return {
+        "n": stats.n,
+        "wins": stats.wins,
+        "losses": stats.losses,
+        "open": stats.open,
+        "hitRate": stats.hit_rate,
+        "expectancyR": stats.expectancy_r,
+    }
+
+
+@router.get("/scalp/review")
+async def scalp_review_endpoint(
+    state: State, days: int = Query(default=30, ge=1, le=120)
+) -> dict[str, Any]:
+    """Forward-test scorecard for the (UNVALIDATED) scalp engine."""
+    from tp_research.scalp import summarize_review
+
+    hit: dict[str, Any] | None = _cached(f"scalp:{days}", 60.0)
+    if hit is not None:
+        return hit
+    async with state.db.session() as s:
+        rows = (await s.execute(_SCALP_SQL, {"days": days})).mappings().all()
+
+    graded = [(r["outcome"], float(r["r_multiple"])) for r in rows
+              if r["outcome"] and r["r_multiple"] is not None]
+    by_tf: dict[str, list[tuple[str, float]]] = {}
+    for r in rows:
+        if r["outcome"] and r["r_multiple"] is not None:
+            by_tf.setdefault(r["timeframe"], []).append((r["outcome"], float(r["r_multiple"])))
+
+    result = {
+        "days": days,
+        "overall": _review_dict(summarize_review(graded)),
+        "byTimeframe": [
+            {"timeframe": tf, **_review_dict(summarize_review(v))}
+            for tf, v in sorted(by_tf.items())
+        ],
+        "recent": [
+            {
+                "ts": r["ts"].isoformat(),
+                "underlying": r["underlying"],
+                "timeframe": r["timeframe"],
+                "side": r["side"],
+                "entry": float(r["entry"]),
+                "stop": float(r["stop"]),
+                "target": float(r["target"]),
+                "outcome": r["outcome"],
+                "rMultiple": float(r["r_multiple"]) if r["r_multiple"] is not None else None,
+            }
+            for r in rows[:40]
+        ],
+    }
+    return _store(f"scalp:{days}", result)

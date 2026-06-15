@@ -9,6 +9,7 @@ import { apiGet } from "./client";
 import {
   mockBreakoutScan,
   mockOptionChain,
+  mockScalpReview,
   mockBurnIn,
   mockPaperLeaderboard,
   mockPaperPnl,
@@ -25,6 +26,7 @@ import {
 import type {
   BreakoutScan,
   OptionChain,
+  ScalpReview,
   BurnInDay,
   PaperLeaderboardRow,
   PaperPnlRow,
@@ -157,5 +159,13 @@ export function useOptionChain(underlying: string) {
         mockOptionChain(underlying),
       ),
     refetchInterval: POLL_FAST,
+  });
+}
+
+export function useScalpReview() {
+  return useQuery({
+    queryKey: ["scalp", "review"],
+    queryFn: () => apiGet<ScalpReview>("/api/v1/scalp/review", mockScalpReview),
+    refetchInterval: POLL_SLOW,
   });
 }
